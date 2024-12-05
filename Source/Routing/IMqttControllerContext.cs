@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using MQTTnet.Server;
+using MQTTnet.Client;
+using MQTTnet.Extensions.ManagedClient;
 
 namespace MQTTnet.AspNetCore.Routing
 {
     public interface IMqttControllerContext
     {
-        InterceptingPublishEventArgs MqttContext { get; set; }
-        MqttServer MqttServer { get; set; }
+        MqttApplicationMessageReceivedEventArgs MqttContext { get; set; }
+
+        ManagedMqttClient Client { get; set; }
     }
 }

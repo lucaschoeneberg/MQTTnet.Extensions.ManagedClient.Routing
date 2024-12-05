@@ -14,9 +14,10 @@ namespace MQTTnet.AspNetCore.Routing
     /// </summary>
     internal class TypeActivatorCache : ITypeActivatorCache
     {
-        private readonly Func<Type, ObjectFactory> _createFactory = (type) => ActivatorUtilities.CreateFactory(type, Type.EmptyTypes);
+        private readonly Func<Type, ObjectFactory> _createFactory =
+            (type) => ActivatorUtilities.CreateFactory(type, Type.EmptyTypes);
 
-        private readonly ConcurrentDictionary<Type, ObjectFactory> _typeActivatorCache = new ConcurrentDictionary<Type, ObjectFactory>();
+        private readonly ConcurrentDictionary<Type, ObjectFactory> _typeActivatorCache = new();
 
         /// <inheritdoc/>
         public TInstance CreateInstance<TInstance>(IServiceProvider serviceProvider, Type implementationType)

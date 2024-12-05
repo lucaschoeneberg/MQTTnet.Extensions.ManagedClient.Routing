@@ -10,6 +10,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
+using MQTTnet.Client;
+using MQTTnet.Extensions.ManagedClient;
 
 #nullable enable
 
@@ -21,7 +23,7 @@ namespace MQTTnet.AspNetCore.Routing
         private readonly MqttRouteTable routeTable;
         private readonly ITypeActivatorCache typeActivator;
 
-        public MqttServer? Server { get; set; }
+        public ManagedMqttClient? Client { get; set; }
 
         public MqttRouter(ILogger<MqttRouter> logger, MqttRouteTable routeTable, ITypeActivatorCache typeActivator)
         {
@@ -30,15 +32,9 @@ namespace MQTTnet.AspNetCore.Routing
             this.typeActivator = typeActivator;
         }
 
-        internal async Task OnIncomingApplicationMessage(IServiceProvider svcProvider, InterceptingPublishEventArgs context, bool allowUnmatchedRoutes)
+        internal async Task OnIncomingApplicationMessage(IServiceProvider svcProvider,
+            MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes)
         {
-            // Don't process messages sent from the server itself. This avoids footguns like a server failing to publish
-            // a message because a route isn't found on a controller.
-            if (context.ClientId == null)
-            {
-                return;
-            }
-
             var routeContext = new MqttRouteContext(context.ApplicationMessage.Topic);
 
             routeTable.Route(routeContext);
@@ -48,10 +44,11 @@ namespace MQTTnet.AspNetCore.Routing
                 // Route not found
                 if (!allowUnmatchedRoutes)
                 {
-                    logger.LogDebug($"Rejecting message publish because '{context.ApplicationMessage.Topic}' did not match any known routes.");
+                    logger.LogDebug(
+                        $"Rejecting message publish because '{context.ApplicationMessage.Topic}' did not match any known routes.");
                 }
 
-                context.ProcessPublish = allowUnmatchedRoutes;
+                context.ProcessingFailed = !allowUnmatchedRoutes;
             }
             else
             {
@@ -80,13 +77,13 @@ namespace MQTTnet.AspNetCore.Routing
 
                     if (activateProperties.Length == 0)
                     {
-                        logger.LogDebug($"MqttController '{declaringType.FullName}' does not have a property that can accept a controller context.  You may want to add a [{nameof(MqttControllerContextAttribute)}] to a pubilc property.");
+                        logger.LogDebug(
+                            $"MqttController '{declaringType.FullName}' does not have a property that can accept a controller context.  You may want to add a [{nameof(MqttControllerContextAttribute)}] to a public property.");
                     }
 
                     var controllerContext = new MqttControllerContext()
                     {
-                        MqttContext = context,
-                        MqttServer = Server
+                        MqttContext = context
                     };
 
                     for (int i = 0; i < activateProperties.Length; i++)
@@ -110,9 +107,10 @@ namespace MQTTnet.AspNetCore.Routing
                             }
                         });
                     }
+
                     ParameterInfo[] parameters = routeContext.Handler.GetParameters();
 
-                    context.ProcessPublish = true;
+                    context.ProcessingFailed = false;
 
                     if (parameters.Length == 0)
                     {
@@ -133,22 +131,24 @@ namespace MQTTnet.AspNetCore.Routing
                         }
                         catch (ArgumentException ex)
                         {
-                            logger.LogError(ex, $"Unable to match route parameters to all arguments. See inner exception for details.");
+                            logger.LogError(ex,
+                                $"Unable to match route parameters to all arguments. See inner exception for details.");
 
-                            context.ProcessPublish = false;
+                            context.ProcessingFailed = true;
                         }
                         catch (TargetInvocationException ex)
                         {
-                            logger.LogError(ex.InnerException, $"Unhandled MQTT action exception. See inner exception for details.");
+                            logger.LogError(ex.InnerException,
+                                $"Unhandled MQTT action exception. See inner exception for details.");
 
-                            // This is an unandled exception from the invoked action
-                            context.ProcessPublish = false;
+                            // This is an unhandled exception from the invoked action
+                            context.ProcessingFailed = true;
                         }
                         catch (Exception ex)
                         {
                             logger.LogError(ex, "Unable to invoke Mqtt Action.  See inner exception for details.");
 
-                            context.ProcessPublish = false;
+                            context.ProcessingFailed = true;
                         }
                     }
                 }
@@ -169,13 +169,15 @@ namespace MQTTnet.AspNetCore.Routing
 
                 if (result == null)
                 {
-                    throw new NullReferenceException($"{method.DeclaringType.FullName}.{method.Name} returned null instead of Task");
+                    throw new NullReferenceException(
+                        $"{method.DeclaringType.FullName}.{method.Name} returned null instead of Task");
                 }
 
                 return result;
             }
 
-            throw new InvalidOperationException($"Unsupported Action return type \"{method.ReturnType}\" on method {method.DeclaringType.FullName}.{method.Name}. Only void and {nameof(Task)} are allowed.");
+            throw new InvalidOperationException(
+                $"Unsupported Action return type \"{method.ReturnType}\" on method {method.DeclaringType.FullName}.{method.Name}. Only void and {nameof(Task)} are allowed.");
         }
 
         private static object? MatchParameterOrThrow(ParameterInfo param,
@@ -200,7 +202,8 @@ namespace MQTTnet.AspNetCore.Routing
                 }
                 else
                 {
-                    throw new ArgumentException($"No matching route parameter for \"{param.ParameterType.Name} {param.Name}\"", param.Name);
+                    throw new ArgumentException(
+                        $"No matching route parameter for \"{param.ParameterType.Name} {param.Name}\"", param.Name);
                 }
             }
 
@@ -212,9 +215,12 @@ namespace MQTTnet.AspNetCore.Routing
                 }
                 catch (Exception ex)
                 {
-                    throw new ArgumentException($"Cannot assign type \"{value.GetType()}\" to parameter \"{param.ParameterType.Name} {param.Name}\"", param.Name,ex);
+                    throw new ArgumentException(
+                        $"Cannot assign type \"{value.GetType()}\" to parameter \"{param.ParameterType.Name} {param.Name}\"",
+                        param.Name, ex);
                 }
             }
+
             return value;
         }
     }

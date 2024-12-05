@@ -16,9 +16,9 @@ namespace MQTTnet.AspNetCore.Routing
 
         internal void Route(MqttRouteContext routeContext)
         {
-            for (var i = 0; i < Routes.Length; i++)
+            foreach (var t in Routes)
             {
-                Routes[i].Match(routeContext);
+                t.Match(routeContext);
 
                 if (routeContext.Handler != null)
                 {
