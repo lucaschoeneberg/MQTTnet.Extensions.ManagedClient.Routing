@@ -108,7 +108,6 @@ namespace MQTTnet.AspNetCore.Routing
         {
             var router = app.ApplicationServices.GetRequiredService<MqttRouter>();
             var client = app.ApplicationServices.GetRequiredService<ManagedMqttClient>();
-            router.Client = client;
             var interceptor = app.ApplicationServices.GetService<IRouteInvocationInterceptor>();
             client.ApplicationMessageReceivedAsync += async (args) =>
             {
@@ -144,7 +143,6 @@ namespace MQTTnet.AspNetCore.Routing
             bool allowUnmatchedRoutes = false)
         {
             var router = svcProvider.GetRequiredService<MqttRouter>();
-            router.Client = client;
             var interceptor = svcProvider.GetService<IRouteInvocationInterceptor>();
             client.ApplicationMessageReceivedAsync += async (args) =>
             {

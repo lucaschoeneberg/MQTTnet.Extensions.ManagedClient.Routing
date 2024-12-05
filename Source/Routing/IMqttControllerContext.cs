@@ -8,7 +8,6 @@ namespace MQTTnet.AspNetCore.Routing
     public interface IMqttControllerContext
     {
         MqttApplicationMessageReceivedEventArgs MqttContext { get; set; }
-
-        ManagedMqttClient Client { get; set; }
+        
     }
 }

@@ -11,7 +11,6 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using MQTTnet.Client;
-using MQTTnet.Extensions.ManagedClient;
 
 #nullable enable
 
@@ -22,9 +21,7 @@ namespace MQTTnet.AspNetCore.Routing
         private readonly ILogger<MqttRouter> logger;
         private readonly MqttRouteTable routeTable;
         private readonly ITypeActivatorCache typeActivator;
-
-        public ManagedMqttClient? Client { get; set; }
-
+        
         public MqttRouter(ILogger<MqttRouter> logger, MqttRouteTable routeTable, ITypeActivatorCache typeActivator)
         {
             this.logger = logger;

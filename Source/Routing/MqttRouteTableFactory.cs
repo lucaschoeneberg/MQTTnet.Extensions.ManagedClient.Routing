@@ -115,8 +115,8 @@ namespace MQTTnet.AspNetCore.Routing
                     if (mrat != null)
                     {
                         entry.ControllerTemplate = TemplateParser.ParseTemplate(mrat.Template);
-                        var _haveparams = entry.ControllerTemplate.Segments.Any(c => c.IsParameter);
-                        entry.HaveControllerParameter = _haveparams;
+                        var haveparams = entry.ControllerTemplate.Segments.Any(c => c.IsParameter);
+                        entry.HaveControllerParameter = haveparams;
                     }
                     routes.Add(entry);
                 }
