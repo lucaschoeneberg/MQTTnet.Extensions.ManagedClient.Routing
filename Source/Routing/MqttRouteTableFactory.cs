@@ -27,14 +27,15 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         /// <returns></returns>
         internal static MqttRouteTable Create(IEnumerable<Assembly> assemblies)
         {
-            var key = new Key(assemblies.OrderBy(a => a.FullName).ToArray());
+            var enumerable = assemblies as Assembly[] ?? assemblies.ToArray();
+            var key = new Key(enumerable.OrderBy(a => a.FullName).ToArray());
 
             if (Cache.TryGetValue(key, out var resolvedComponents))
             {
                 return resolvedComponents;
             }
 
-            var asm = assemblies ?? new Assembly[] { Assembly.GetExecutingAssembly() };
+            var asm = enumerable;
 
             var actions = asm.SelectMany(a => a.GetTypes())
                 .Where(type => type.GetCustomAttribute(typeof(MqttControllerAttribute), true) != null)
@@ -152,7 +153,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             // In a future enhancement, we may allow escaping tokens with a "[[" to have feature parity with AspNet routing.
             return template
                 // Strip "Controller" suffix from controller name if needed
-                .Replace("[controller]", controllerName.EndsWith("Controller") ? controllerName.Substring(0, controllerName.Length - 10) : controllerName)
+                .Replace("[controller]", controllerName.EndsWith("Controller") ? controllerName[..^10] : controllerName)
                 .Replace("[action]", actionName);
         }
 
@@ -198,68 +199,52 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 {
                     return 1;
                 }
-                if (!xTemplate.Segments[xTemplate.Segments.Count - 1].IsCatchAll && yTemplate.Segments[yTemplate.Segments.Count - 1].IsCatchAll)
+                if (!xTemplate.Segments[^1].IsCatchAll && yTemplate.Segments[^1].IsCatchAll)
                 {
                     return -1;
                 }
 
-                if (xTemplate.Segments[xTemplate.Segments.Count - 1].IsCatchAll && !yTemplate.Segments[yTemplate.Segments.Count - 1].IsCatchAll)
+                if (xTemplate.Segments[^1].IsCatchAll && !yTemplate.Segments[^1].IsCatchAll)
                 {
                     return 1;
                 }
 
                 return xTemplate.Segments.Count < y.Template.Segments.Count ? -1 : 1;
             }
-            else
+
+            for (var i = 0; i < xTemplate.Segments.Count; i++)
             {
-                for (var i = 0; i < xTemplate.Segments.Count; i++)
+                var xSegment = xTemplate.Segments[i];
+                var ySegment = yTemplate.Segments[i];
+
+                if (!xSegment.IsCatchAll && ySegment.IsCatchAll)
                 {
-                    var xSegment = xTemplate.Segments[i];
-                    var ySegment = yTemplate.Segments[i];
+                    return -1;
+                }
 
-                    if (!xSegment.IsCatchAll && ySegment.IsCatchAll)
-                    {
+                if (xSegment.IsCatchAll && !ySegment.IsCatchAll)
+                {
+                    return 1;
+                }
+
+                switch (xSegment.IsParameter)
+                {
+                    case false when ySegment.IsParameter:
                         return -1;
-                    }
-
-                    if (xSegment.IsCatchAll && !ySegment.IsCatchAll)
-                    {
+                    case true when !ySegment.IsParameter:
                         return 1;
-                    }
-
-                    if (!xSegment.IsParameter && ySegment.IsParameter)
-                    {
+                    // Always favor non-optional parameters over optional ones
+                    case true when !xSegment.IsOptional && ySegment.IsOptional:
                         return -1;
-                    }
-
-                    if (xSegment.IsParameter && !ySegment.IsParameter)
-                    {
+                    case true when xSegment.IsOptional && !ySegment.IsOptional:
                         return 1;
-                    }
-
-                    if (xSegment.IsParameter)
-                    {
-                        // Always favor non-optional parameters over optional ones
-                        if (!xSegment.IsOptional && ySegment.IsOptional)
-                        {
-                            return -1;
-                        }
-
-                        if (xSegment.IsOptional && !ySegment.IsOptional)
-                        {
-                            return 1;
-                        }
-
-                        if (xSegment.Constraints.Length > ySegment.Constraints.Length)
-                        {
-                            return -1;
-                        }
-                        else if (xSegment.Constraints.Length < ySegment.Constraints.Length)
-                        {
-                            return 1;
-                        }
-                    }
-                    else
+                    case true when xSegment.Constraints.Length > ySegment.Constraints.Length:
+                        return -1;
+                    case true when xSegment.Constraints.Length < ySegment.Constraints.Length:
+                        return 1;
+                    case true:
+                        break;
+                    default:
                     {
                         var comparison = string.Compare(xSegment.Value, ySegment.Value, StringComparison.OrdinalIgnoreCase);
 
@@ -267,14 +252,16 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         {
                             return comparison;
                         }
+
+                        break;
                     }
                 }
+            }
 
-                throw new InvalidOperationException($@"The following routes are ambiguous:
+            throw new InvalidOperationException($@"The following routes are ambiguous:
 '{x.Template.TemplateText}' in '{x.Handler.DeclaringType.FullName}.{x.Handler.Name}'
 '{y.Template.TemplateText}' in '{y.Handler.DeclaringType.FullName}.{y.Handler.Name}'
 ");
-            }
         }
 
         private readonly struct Key : IEquatable<Key>
@@ -288,7 +275,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
             public override bool Equals(object obj)
             {
-                return obj is Key other ? base.Equals(other) : false;
+                return obj is Key other && base.Equals(other);
             }
 
             public bool Equals(Key other)
@@ -297,36 +284,28 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 {
                     return true;
                 }
-                else if ((Assemblies == null) || (other.Assemblies == null))
-                {
-                    return false;
-                }
-                else if (Assemblies.Length != other.Assemblies.Length)
+
+                if (Assemblies == null || other.Assemblies == null)
                 {
                     return false;
                 }
 
-                for (var i = 0; i < Assemblies.Length; i++)
+                if (Assemblies.Length != other.Assemblies.Length)
                 {
-                    if (!Assemblies[i].Equals(other.Assemblies[i]))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
 
-                return true;
+                return !Assemblies.Where((t, i) => !t.Equals(other.Assemblies[i])).Any();
             }
 
             public override int GetHashCode()
             {
                 var hash = new HashCode();
 
-                if (Assemblies != null)
+                if (Assemblies == null) return hash.ToHashCode();
+                foreach (var t in Assemblies)
                 {
-                    for (var i = 0; i < Assemblies.Length; i++)
-                    {
-                        hash.Add(Assemblies[i]);
-                    }
+                    hash.Add(t);
                 }
 
                 return hash.ToHashCode();

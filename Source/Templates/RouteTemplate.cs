@@ -13,63 +13,37 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
     {
         public RouteTemplate(string templateText, List<TemplateSegment> segments)
         {
-            if (segments == null)
-            {
-                throw new ArgumentNullException(nameof(segments));
-            }
-
+            Segments = segments ?? throw new ArgumentNullException(nameof(segments));
             TemplateText = templateText;
-            Segments = segments;
-            OptionalSegmentsCount = segments.Count(template => template.IsOptional);
+            OptionalSegmentsCount = CalculateOptionalSegments(segments);
             ContainsCatchAllSegment = segments.Any(template => template.IsCatchAll);
         }
 
         public string TemplateText { get; }
-
         public IList<TemplateSegment> Segments { get; }
-
         public int OptionalSegmentsCount { get; }
-
         public bool ContainsCatchAllSegment { get; }
+
+        private static int CalculateOptionalSegments(IEnumerable<TemplateSegment> segments)
+        {
+            return segments.Count(template => template.IsOptional);
+        }
 
         public bool Equals(RouteTemplate other)
         {
-            if (other == null)
-            {
-                return false;
-            }
-
-            if (!string.Equals(TemplateText, other.TemplateText, StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            if (Segments.Count != other.Segments.Count)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < Segments.Count; i++)
-            {
-                if (!Segments[i].Equals(other.Segments[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return other != null &&
+                   string.Equals(TemplateText, other.TemplateText, StringComparison.Ordinal) &&
+                   Segments.Count == other.Segments.Count &&
+                   Segments.Zip(other.Segments, (a, b) => a.Equals(b)).All(equal => equal);
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object obj)
         {
-            if (!this.GetType().Equals(other.GetType()))
+            if (obj is RouteTemplate otherRouteTemplate)
             {
-                return false;
+                return Equals(otherRouteTemplate);
             }
-            else
-            {
-                return Equals((RouteTemplate)other);
-            }
+            return false;
         }
 
         public override int GetHashCode()

@@ -20,7 +20,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         private readonly ILogger<MqttRouter> logger;
         private readonly MqttRouteTable routeTable;
         private readonly ITypeActivatorCache typeActivator;
-        
+
         public MqttRouter(ILogger<MqttRouter> logger, MqttRouteTable routeTable, ITypeActivatorCache typeActivator)
         {
             this.logger = logger;
@@ -40,17 +40,17 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 // Route not found
                 if (!allowUnmatchedRoutes)
                 {
-                    logger.LogDebug(
-                        $"Rejecting message publish because '{context.ApplicationMessage.Topic}' did not match any known routes.");
+                    logger.LogDebug($"No route matched for topic '{context.ApplicationMessage.Topic}'");
                 }
 
                 context.ProcessingFailed = !allowUnmatchedRoutes;
             }
             else
             {
+                logger.LogDebug($"Route matched for topic '{context.ApplicationMessage.Topic}'");
                 using (var scope = svcProvider.CreateScope())
                 {
-                    Type? declaringType = routeContext.Handler.DeclaringType;
+                    var declaringType = routeContext.Handler.DeclaringType;
 
                     if (declaringType == null)
                     {
@@ -61,14 +61,10 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                     // Potential perf improvement is to cache this reflection work in the future.
                     var activateProperties = declaringType.GetRuntimeProperties()
-                        .Where((property) =>
-                        {
-                            return
-                                property.IsDefined(typeof(MqttControllerContextAttribute)) &&
-                                property.GetIndexParameters().Length == 0 &&
-                                property.SetMethod != null &&
-                                !property.SetMethod.IsStatic;
-                        })
+                        .Where((property) => property.IsDefined(typeof(MqttControllerContextAttribute)) &&
+                                             property.GetIndexParameters().Length == 0 &&
+                                             property.SetMethod != null &&
+                                             !property.SetMethod.IsStatic)
                         .ToArray();
 
                     if (activateProperties.Length == 0)
@@ -94,12 +90,10 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         tmpx.Segments.Where(p => p.IsParameter).ToList().ForEach(ts =>
                         {
                             var pro = declaringType.GetRuntimeProperty(ts.Value);
-                            if (pro != null)
+                            if (pro == null) return;
+                            if (routeContext.Parameters.TryGetValue(ts.Value, out object pvalue))
                             {
-                                if (routeContext.Parameters.TryGetValue(ts.Value, out object pvalue))
-                                {
-                                    pro.SetValue(classInstance, pvalue);
-                                }
+                                pro.SetValue(classInstance, pvalue);
                             }
                         });
                     }
@@ -159,7 +153,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                 return Task.CompletedTask;
             }
-            else if (method.ReturnType == typeof(Task))
+
+            if (method.ReturnType == typeof(Task))
             {
                 var result = (Task?)method.Invoke(instance, parameters);
 
@@ -203,18 +198,16 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 }
             }
 
-            if (!param.ParameterType.IsAssignableFrom(value.GetType()))
+            if (param.ParameterType.IsInstanceOfType(value)) return value;
+            try
             {
-                try
-                {
-                    value = Convert.ChangeType(value, param.ParameterType);
-                }
-                catch (Exception ex)
-                {
-                    throw new ArgumentException(
-                        $"Cannot assign type \"{value.GetType()}\" to parameter \"{param.ParameterType.Name} {param.Name}\"",
-                        param.Name, ex);
-                }
+                value = Convert.ChangeType(value, param.ParameterType);
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException(
+                    $"Cannot assign type \"{value.GetType()}\" to parameter \"{param.ParameterType.Name} {param.Name}\"",
+                    param.Name, ex);
             }
 
             return value;
