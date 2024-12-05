@@ -7,7 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Globalization;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Constraints
 {
     internal abstract class RouteConstraint
     {

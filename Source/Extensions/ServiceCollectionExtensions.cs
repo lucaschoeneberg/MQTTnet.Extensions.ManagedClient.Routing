@@ -1,15 +1,14 @@
 // Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using MQTTnet.AspNetCore.Routing.Routing;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
-using MQTTnet.Extensions.ManagedClient;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using MQTTnet.Extensions.ManagedClient.Routing.Routing;
 
 // This is needed to make internal classes visible to UnitTesting projects
 [assembly: InternalsVisibleTo("MQTTnet.AspNetCore.Routing.Tests, PublicKey=00240000048000009" +
@@ -18,7 +17,7 @@ using MQTTnet.Extensions.ManagedClient;
                               "65ffcd47bf99f18af6361de42003808f7323d20d5d2c66fe494852b5e2438db793ec9fd845b80e1ce5c9b17ff053f386" +
                               "bc0f06080e9d0ba")]
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
 {
     public static class ServiceCollectionExtensions
     {
@@ -107,7 +106,7 @@ namespace MQTTnet.AspNetCore.Routing
             bool allowUnmatchedRoutes = false)
         {
             var router = app.ApplicationServices.GetRequiredService<MqttRouter>();
-            var client = app.ApplicationServices.GetRequiredService<ManagedMqttClient>();
+            var client = app.ApplicationServices.GetRequiredService<IManagedMqttClient>();
             var interceptor = app.ApplicationServices.GetService<IRouteInvocationInterceptor>();
             client.ApplicationMessageReceivedAsync += async (args) =>
             {

@@ -1,7 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MQTTnet.AspNetCore.Routing;
 using System;
 using System.Collections.Generic;
+using MQTTnet.Extensions.ManagedClient.Routing.Templates;
 
 namespace MQTTnet.AspNetCore.Routing.Tests
 {

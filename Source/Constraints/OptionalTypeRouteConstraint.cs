@@ -1,7 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt
 // in the project root for license information. // Modifications Copyright (c) Atlas Lift Tech Inc.
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Constraints
 {
     /// <summary>
     /// A route constraint that allows the value to be null or parseable as the specified type.

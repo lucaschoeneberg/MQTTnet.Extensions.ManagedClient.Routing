@@ -8,8 +8,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using MQTTnet.Extensions.ManagedClient.Routing.Templates;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
     [DebuggerDisplay("Handler = {Handler}, Template = {Template}")]
     internal class MqttRoute

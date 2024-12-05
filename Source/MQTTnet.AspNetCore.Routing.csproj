@@ -10,22 +10,28 @@
 		</Description>
 		<Copyright>Copyright (c) Atlas Lift Tech Inc. 2021</Copyright>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageTags>MQTT Message Queue Telemetry Transport MQTTClient MQTTServer Server MQTTBroker Broker NETStandard IoT InternetOfThings Messaging Hardware Arduino Sensor Actuator M2M ESP Smart Home Cities Automation Xamarin Blazor AspNetCore</PackageTags>
+		<PackageTags>MQTT Message Queue Telemetry Transport MQTTClient MQTTBroker Broker NETStandard IoT InternetOfThings Messaging Hardware Arduino Sensor Actuator M2M ESP Smart Home Cities Automation Xamarin Blazor AspNetCore</PackageTags>
 		<Company>Atlas Lift Tech Inc;IoTSharp</Company>
-		<Authors>Anton Vishnyak;maikebing</Authors>
+		<Authors>Anton Vishnyak;maikebing;lucaschoeneberg</Authors>
 		<AssemblyVersion>0.4.0</AssemblyVersion>
 		<FileVersion>0.4.0</FileVersion>
 		<LangVersion>default</LangVersion>
-		<RepositoryUrl>https://github.com/IoTSharp/MQTTnet.AspNetCore.Routing</RepositoryUrl>
+		<RepositoryUrl>https://github.com/lucaschoeneberg/MQTTnet.AspNetCore.Routing</RepositoryUrl>
 		<RepositoryType>GIT</RepositoryType>
-		<PackageReleaseNotes>* Added support for passing an array of assemblies to use in route discovery</PackageReleaseNotes>
-		<Version>0.4.0</Version>
+		<PackageReleaseNotes>Build on top of https://github.com/IoTSharp/MQTTnet.AspNetCore.Routing
+
+* Removed support for Server
+* Add support for Client (ManagedMqttClient)</PackageReleaseNotes>
+		<Version>1.0.0</Version>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-		<PackageProjectUrl>https://github.com/IoTSharp/MQTTnet.AspNetCore.Routing</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/lucaschoeneberg/MQTTnet.AspNetCore.Routing</PackageProjectUrl>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<AssemblyName>MQTTnet.Extensions.ManagedClient.Routing</AssemblyName>
+		<RootNamespace>MQTTnet.Extensions.ManagedClient.Routing</RootNamespace>
+		<PackageId>MQTTnet.Extensions.ManagedClient.Routing</PackageId>
  
 	</PropertyGroup>
 	<ItemGroup>

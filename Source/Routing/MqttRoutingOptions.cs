@@ -1,9 +1,8 @@
-using MQTTnet.AspNetCore.Routing.Routing;
 using System;
 using System.Reflection;
 using System.Text.Json;
 
-namespace MQTTnet.AspNetCore.Routing;
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing;
 
 public class MqttRoutingOptions
 {

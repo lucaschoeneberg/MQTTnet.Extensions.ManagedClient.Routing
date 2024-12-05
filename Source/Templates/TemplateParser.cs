@@ -6,7 +6,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
 {
     internal class TemplateParser
     {

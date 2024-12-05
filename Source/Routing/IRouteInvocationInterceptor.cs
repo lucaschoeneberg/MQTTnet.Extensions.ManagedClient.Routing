@@ -1,9 +1,8 @@
-﻿using MQTTnet.Server;
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using MQTTnet.Client;
 
-namespace MQTTnet.AspNetCore.Routing.Routing {
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing {
     public interface IRouteInvocationInterceptor
     {
         /// <summary>

@@ -1,7 +1,6 @@
 ﻿using System;
-using MQTTnet.Server;
 
-namespace MQTTnet.AspNetCore.Routing.Attributes
+namespace MQTTnet.Extensions.ManagedClient.Routing.Attributes
 {
     /// <summary>
     /// When creating a custom controller that does not inherit from <see cref="MqttBaseController"/>, this attribute

@@ -3,7 +3,7 @@
 
 // Modifications Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Constraints
 {
     /// <summary>
     /// A route constraint that requires the value to be parseable as a specified type.

@@ -1,9 +1,8 @@
 ﻿// Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
 using MQTTnet.Client;
-using MQTTnet.Extensions.ManagedClient;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
     public interface IMqttControllerContext
     {

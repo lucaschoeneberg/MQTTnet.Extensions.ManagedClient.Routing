@@ -1,20 +1,19 @@
 ﻿// Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using MQTTnet.AspNetCore.Routing.Attributes;
-using MQTTnet.Server;
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MQTTnet.Client;
+using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
 
-#nullable enable
-
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
     internal class MqttRouter
     {

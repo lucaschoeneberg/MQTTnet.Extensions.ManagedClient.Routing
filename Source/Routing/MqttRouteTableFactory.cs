@@ -3,14 +3,16 @@
 
 // Modifications Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
+using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
+using MQTTnet.Extensions.ManagedClient.Routing.Templates;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
     internal static class MqttRouteTableFactory
     {

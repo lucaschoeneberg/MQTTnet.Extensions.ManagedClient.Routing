@@ -1,15 +1,11 @@
 ﻿// Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using Microsoft.AspNetCore.Mvc;
-using MQTTnet.AspNetCore.Routing.Attributes;
-using MQTTnet.Server;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using MQTTnet.Client;
+using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
     [MqttController]
     public abstract class MqttBaseController

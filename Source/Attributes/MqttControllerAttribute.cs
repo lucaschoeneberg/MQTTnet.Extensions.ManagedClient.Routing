@@ -5,7 +5,7 @@
 
 using System;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Attributes
 {
     /// <summary>
     /// Indicates that a type and all derived types are used to serve MQTT responses.

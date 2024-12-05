@@ -3,8 +3,9 @@
 
 using System;
 using System.Linq;
+using MQTTnet.Extensions.ManagedClient.Routing.Constraints;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
 {
     internal class TemplateSegment : IEquatable<TemplateSegment>
     {

@@ -6,8 +6,9 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using MQTTnet.Extensions.ManagedClient.Routing.Templates;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
     internal class MqttRouteContext
     {

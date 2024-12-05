@@ -3,7 +3,7 @@
 
 using System;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
     internal interface ITypeActivatorCache
     {

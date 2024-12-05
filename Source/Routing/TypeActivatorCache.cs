@@ -3,11 +3,11 @@
 
 // Modifications Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace MQTTnet.AspNetCore.Routing
+namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
     /// <summary>
     /// Caches <see cref="ObjectFactory"/> instances produced by <see cref="ActivatorUtilities.CreateFactory(Type, Type[])"/>.
