@@ -18,13 +18,12 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
             if (IsCatchAll)
             {
                 // Only one '*' currently allowed
-                Value = segment.Substring(1);
+                Value = segment[1..];
 
-                var invalidCharacter = Value.IndexOf('*');
-
-                if (Value.IndexOf('*') != -1)
+                if (Value.Contains('*'))
                 {
-                    throw new InvalidOperationException($"Invalid template '{template}'. A catch-all parameter may only have one '*' at the beginning of the segment.");
+                    throw new InvalidOperationException(
+                        $"Invalid template '{template}'. A catch-all parameter may only have one '*' at the beginning of the segment.");
                 }
             }
             else
@@ -40,12 +39,13 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
                 if (Value.IndexOf('?') == Value.Length - 1)
                 {
                     IsOptional = true;
-                    Value = Value.Substring(0, Value.Length - 1);
+                    Value = Value[..^1];
                 }
                 // If the `?` optional marker shows up in the segment but not at the very end, then throw an error.
-                else if (Value.IndexOf('?') >= 0 && Value.IndexOf('?') != Value.Length - 1)
+                else if (Value.Contains('?') && Value.IndexOf('?') != Value.Length - 1)
                 {
-                    throw new ArgumentException($"Malformed parameter '{segment}' in route '{template}'. '?' character can only appear at the end of parameter name.");
+                    throw new ArgumentException(
+                        $"Malformed parameter '{segment}' in route '{template}'. '?' character can only appear at the end of parameter name.");
                 }
 
                 Constraints = Array.Empty<RouteConstraint>();
@@ -56,7 +56,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
 
                 if (tokens[0].Length == 0)
                 {
-                    throw new ArgumentException($"Malformed parameter '{segment}' in route '{template}' has no name before the constraints list.");
+                    throw new ArgumentException(
+                        $"Malformed parameter '{segment}' in route '{template}' has no name before the constraints list.");
                 }
 
                 // Set the IsOptional flag to true if any type constraints for this parameter are designated as optional.
@@ -68,19 +69,19 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
                     .ToArray();
             }
 
-            if (IsParameter)
+            if (!IsParameter) return;
+            if (IsOptional && IsCatchAll)
             {
-                if (IsOptional && IsCatchAll)
-                {
-                    throw new InvalidOperationException($"Invalid segment '{segment}' in route '{template}'. A catch-all parameter cannot be marked optional.");
-                }
+                throw new InvalidOperationException(
+                    $"Invalid segment '{segment}' in route '{template}'. A catch-all parameter cannot be marked optional.");
+            }
 
-                // Moving the check for this here instead of TemplateParser so we can allow catch-all. We checked for
-                // '*' up above specifically for catch-all segments, this one checks for all others
-                if (Value.IndexOf('*') != -1)
-                {
-                    throw new InvalidOperationException($"Invalid template '{template}'. The character '*' in parameter segment '{{{segment}}}' is not allowed.");
-                }
+            // Moving the check for this here instead of TemplateParser so we can allow catch-all. We checked for
+            // '*' up above specifically for catch-all segments, this one checks for all others
+            if (Value.Contains('*'))
+            {
+                throw new InvalidOperationException(
+                    $"Invalid template '{template}'. The character '*' in parameter segment '{{{segment}}}' is not allowed.");
             }
         }
 
@@ -97,52 +98,29 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
 
         public bool Equals(TemplateSegment other)
         {
-            if (other == null)
-            {
-                return false;
-            }
+            if (other == null) return false;
+            return HaveSameProperties(other) && HaveSameConstraints(other);
+        }
 
-            if (IsCatchAll != other.IsCatchAll ||
-                IsOptional != other.IsOptional ||
-                IsParameter != other.IsParameter ||
-                !string.Equals(Value, other.Value, StringComparison.Ordinal) ||
-                (Constraints == null && other.Constraints != null) ||
-                (Constraints != null && other.Constraints == null))
-            {
-                return false;
-            }
+        private bool HaveSameProperties(TemplateSegment other)
+        {
+            return IsCatchAll == other.IsCatchAll &&
+                   IsOptional == other.IsOptional &&
+                   IsParameter == other.IsParameter &&
+                   string.Equals(Value, other.Value, StringComparison.Ordinal);
+        }
 
-            if (Constraints == null && other.Constraints == null)
-            {
-                return true;
-            }
-
-            if (Constraints.Length != other.Constraints.Length)
-            {
-                return false;
-            }
-
-            foreach (var constraint in Constraints)
-            {
-                if (!other.Constraints.Any<RouteConstraint>(c => string.Equals(c.Name, constraint.Name)))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+        private bool HaveSameConstraints(TemplateSegment other)
+        {
+            if (Constraints == null && other.Constraints == null) return true;
+            if (Constraints == null || other.Constraints == null) return false;
+            return Constraints.Length == other.Constraints.Length && Constraints.All(constraint =>
+                other.Constraints.Any(c => string.Equals(c.Name, constraint.Name)));
         }
 
         public override bool Equals(object other)
         {
-            if (!this.GetType().Equals(other.GetType()))
-            {
-                return false;
-            }
-            else
-            {
-                return Equals((TemplateSegment)other);
-            }
+            return other != null && GetType() == other.GetType() && Equals((TemplateSegment)other);
         }
 
         public override int GetHashCode()
@@ -166,12 +144,10 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
 
                 return true;
             }
-            else
-            {
-                matchedParameterValue = null;
 
-                return string.Equals(Value, pathSegment, StringComparison.OrdinalIgnoreCase);
-            }
+            matchedParameterValue = null;
+
+            return string.Equals(Value, pathSegment, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

@@ -15,7 +15,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
 
         internal static RouteTemplate ParseTemplate(string template)
         {
-            string originalTemplate = template;
+            var originalTemplate = template;
             template = template.Trim('/');
             List<TemplateSegment> templateSegments = new();
 
@@ -24,7 +24,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
                 return new RouteTemplate(template, templateSegments);
             }
 
-            string[] segments = template.Split('/');
+            var segments = template.Split('/');
             foreach (var segment in segments)
             {
                 ValidateSegment(template, segment, originalTemplate, templateSegments);
