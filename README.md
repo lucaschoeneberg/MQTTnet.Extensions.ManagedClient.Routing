@@ -1,5 +1,5 @@
 ﻿[![NuGet Badge](https://buildstats.info/nuget/MQTTnet.Extensions.ManagedClient.Routing)]([https://www.nuget.org/packages/MQTTnet.AspNetCore.Routing](https://www.nuget.org/packages/MQTTnet.Extensions.ManagedClient.Routing/))
-[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](./LICENSE)
 
 # MQTTnet AspNetCore Routing
 
@@ -9,4 +9,4 @@ This addon to MQTTnet provides the ability to define controllers and use attribu
 
 ## MIT License
 
-See https://github.com/IoTSharp/MQTTnet.AspNetCore.Routing/LICENSE.
+This project is released under the [MIT License](./LICENSE).
