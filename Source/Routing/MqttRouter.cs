@@ -44,7 +44,10 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                     logger.LogDebug($"No route matched for topic '{context.ApplicationMessage.Topic}'");
                 }
 
-                context.ProcessingFailed = !allowUnmatchedRoutes;
+                // In newer versions the application message is accepted via
+                // the AcceptPublish flag rather than the deprecated
+                // ProcessingFailed property.
+                context.AcceptPublish = allowUnmatchedRoutes;
             }
             else
             {
@@ -101,7 +104,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                     ParameterInfo[] parameters = routeContext.Handler.GetParameters();
 
-                    context.ProcessingFailed = false;
+                    // Ensure message is marked as accepted when the route is
+                    // processed successfully.
+                    context.AcceptPublish = true;
 
                     if (parameters.Length == 0)
                     {
@@ -125,7 +130,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                             logger.LogError(ex,
                                 $"Unable to match route parameters to all arguments. See inner exception for details.");
 
-                            context.ProcessingFailed = true;
+                            // Parameter matching failed; reject the message.
+                            context.AcceptPublish = false;
                         }
                         catch (TargetInvocationException ex)
                         {
@@ -133,13 +139,14 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                                 $"Unhandled MQTT action exception. See inner exception for details.");
 
                             // This is an unhandled exception from the invoked action
-                            context.ProcessingFailed = true;
+                            context.AcceptPublish = false;
                         }
                         catch (Exception ex)
                         {
                             logger.LogError(ex, "Unable to invoke Mqtt Action.  See inner exception for details.");
 
-                            context.ProcessingFailed = true;
+                            // Unexpected error; reject the message.
+                            context.AcceptPublish = false;
                         }
                     }
                 }
