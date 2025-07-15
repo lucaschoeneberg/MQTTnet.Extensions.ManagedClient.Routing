@@ -189,16 +189,21 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             var xTemplate = x.Template;
             var yTemplate = y.Template;
 
-            if (xTemplate.Segments.Count != y.Template.Segments.Count)
+            var xCount = xTemplate.Segments.Count;
+            var yCount = yTemplate.Segments.Count;
+
+            if (xCount == 0 && yCount == 0)
             {
-                if (xTemplate.Segments.Count  ==0 ||  y.Template.Segments.Count==0)
-                {
-                    return -1;
-                }
-                if (xTemplate.Segments.Count == 0 &&  y.Template.Segments.Count == 0)
-                {
-                    return 1;
-                }
+                return 0;
+            }
+
+            if (xCount == 0 || yCount == 0)
+            {
+                return xCount < yCount ? -1 : 1;
+            }
+
+            if (xCount != yCount)
+            {
                 if (!xTemplate.Segments[^1].IsCatchAll && yTemplate.Segments[^1].IsCatchAll)
                 {
                     return -1;
@@ -209,7 +214,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                     return 1;
                 }
 
-                return xTemplate.Segments.Count < y.Template.Segments.Count ? -1 : 1;
+                return xCount < yCount ? -1 : 1;
             }
 
             for (var i = 0; i < xTemplate.Segments.Count; i++)
