@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MQTTnet.Client;
@@ -201,7 +202,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             if (param.ParameterType.IsInstanceOfType(value)) return value;
             try
             {
-                value = Convert.ChangeType(value, param.ParameterType);
+                value = Convert.ChangeType(value, param.ParameterType, CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
