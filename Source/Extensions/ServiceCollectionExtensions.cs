@@ -93,15 +93,6 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
         }
 
 
-        [Obsolete(
-            "Use 'services.AddMqttControllers(opt => opt.SerializerOptions= new JsonSerializerOptions());' instead ")]
-        public static IServiceCollection AddMqttDefaultJsonOptions(this IServiceCollection services,
-            JsonSerializerOptions options)
-        {
-            services.AddSingleton(new MqttRoutingOptions() { SerializerOptions = options });
-            return services;
-        }
-
         public static IApplicationBuilder UseAttributeRouting(this IApplicationBuilder app,
             bool allowUnmatchedRoutes = false)
         {
