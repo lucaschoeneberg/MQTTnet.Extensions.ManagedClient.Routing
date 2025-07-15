@@ -139,8 +139,8 @@ namespace MQTTnet.AspNetCore.Routing.Tests
             // Act
 
             // Assert
-           // Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(""));
-          //  Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate("/"));
+            Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(""));
+            Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate("/"));
         }
 
         [TestMethod]
