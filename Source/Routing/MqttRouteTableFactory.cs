@@ -280,7 +280,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
             public override bool Equals(object obj)
             {
-                return obj is Key other && base.Equals(other);
+                return obj is Key other && Equals(other);
             }
 
             public bool Equals(Key other)
