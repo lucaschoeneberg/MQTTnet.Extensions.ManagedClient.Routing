@@ -172,7 +172,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         }
 
         private static object? MatchParameterOrThrow(ParameterInfo param,
-            IReadOnlyDictionary<string, object> availableParmeters, MqttControllerContext controllerContext,
+            IReadOnlyDictionary<string, object> availableParameters, MqttControllerContext controllerContext,
             IServiceProvider serviceProvider)
         {
             if (param.IsDefined(typeof(FromPayloadAttribute), false))
@@ -185,7 +185,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 );
             }
 
-            if (!availableParmeters.TryGetValue(param.Name, out object? value))
+            if (!availableParameters.TryGetValue(param.Name, out object? value))
             {
                 if (param.IsOptional)
                 {
