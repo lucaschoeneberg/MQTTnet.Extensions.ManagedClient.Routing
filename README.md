@@ -44,3 +44,7 @@ public class TelemetryController : MqttBaseController
 ## MIT License
 
 See https://github.com/IoTSharp/MQTTnet.AspNetCore.Routing/LICENSE.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to open issues, submit pull requests and run the test suite.
