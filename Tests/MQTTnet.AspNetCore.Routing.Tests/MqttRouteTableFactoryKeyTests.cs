@@ -41,8 +41,8 @@ public class MqttRouteTableFactoryKeyTests
     [TestMethod]
     public void Equals_ReturnsFalse_ForDifferentAssemblies()
     {
-        var key1 = CreateKey([typeof(string).Assembly]);
-        var key2 = CreateKey([typeof(int).Assembly]);
+        var key1 = CreateKey([typeof(MqttRouteTableFactoryKeyTests).Assembly]);
+        var key2 = CreateKey([typeof(System.Net.Http.HttpClient).Assembly]);
 
         Assert.IsFalse(InvokeEquals(key1, key2));
     }
