@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MQTTnet;
 using MQTTnet.Packets;
 using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
+using MQTTnet.Extensions.ManagedClient.Routing.Extensions;
 using MQTTnet.Extensions.ManagedClient.Routing.Routing;
 
 namespace MQTTnet.AspNetCore.Routing.Tests;
