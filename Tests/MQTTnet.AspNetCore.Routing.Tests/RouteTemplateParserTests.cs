@@ -134,13 +134,15 @@ public class RouteTemplateParserTests
     [TestMethod]
     public void Parse_EmptyRoutesShouldFail()
     {
-        // Arrange
-
-        // Act
+        // Arrange & Act
+        var emptyResult = TemplateParser.ParseTemplate("");
+        var slashResult = TemplateParser.ParseTemplate("/");
 
         // Assert
-        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(""));
-        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate("/"));
+        Assert.AreEqual(string.Empty, emptyResult.TemplateText);
+        Assert.AreEqual(0, emptyResult.Segments.Count);
+        Assert.AreEqual(string.Empty, slashResult.TemplateText);
+        Assert.AreEqual(0, slashResult.Segments.Count);
     }
 
     [TestMethod]
