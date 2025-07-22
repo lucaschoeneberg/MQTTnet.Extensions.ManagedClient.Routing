@@ -2,7 +2,6 @@
 
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using MQTTnet.Client;
 using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Routing

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using MQTTnet.Client;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Routing {
     public interface IRouteInvocationInterceptor
