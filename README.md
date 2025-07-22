@@ -27,6 +27,19 @@ builder.Services.AddMqttControllers();
 app.UseAttributeRouting(); // or managedClient.WithAttributeRouting(app.Services);
 ```
 
+To execute code before and after each controller action you can register an
+`IRouteInvocationInterceptor`. Implement the interface and hook it up when
+adding the controllers:
+
+```csharp
+builder.Services.AddMqttControllers(opt =>
+    opt.WithRouteInvocationInterceptor<MyInterceptor>());
+```
+
+`RouteExecuting` is called before the handler runs and `RouteExecuted` afterwards.
+See the [architecture overview](docs/architecture.md#extension-points) for
+details.
+
 ### Example controller
 
 ```csharp
