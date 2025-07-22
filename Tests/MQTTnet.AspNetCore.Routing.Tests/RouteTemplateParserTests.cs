@@ -178,4 +178,40 @@ public class RouteTemplateParserTests
         // Assert
         Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
     }
+
+    [TestMethod]
+    public void Parse_MissingClosingBraceShouldFail()
+    {
+        // Arrange
+        var template = "{id";
+
+        // Act
+
+        // Assert
+        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
+    }
+
+    [TestMethod]
+    public void Parse_InvalidCharactersInParameterNameShouldFail()
+    {
+        // Arrange
+        var template = "{va.l}";
+
+        // Act
+
+        // Assert
+        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
+    }
+
+    [TestMethod]
+    public void Parse_DuplicateParameterNamesShouldFail()
+    {
+        // Arrange
+        var template = "{id}/{id}";
+
+        // Act
+
+        // Assert
+        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
+    }
 }
