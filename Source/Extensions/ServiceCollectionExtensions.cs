@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Unicode;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using MQTTnet.Extensions.ManagedClient.Routing.ManagedClient;
 using MQTTnet.Extensions.ManagedClient.Routing.Routing;
 
 // This is needed to make internal classes visible to UnitTesting projects
@@ -74,13 +75,10 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
 
         public static MqttRoutingOptions WithJsonSerializerOptions(this MqttRoutingOptions opt)
         {
-#if NET5_0_OR_GREATER
-            var jopt = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-#else
-            var jopt = new JsonSerializerOptions();
-            jopt.PropertyNameCaseInsensitive = true;
-#endif
-            jopt.Encoder = JavaScriptEncoder.Create(UnicodeRanges.All);
+            var jopt = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+            };
             opt.SerializerOptions = jopt;
             return opt;
         }
