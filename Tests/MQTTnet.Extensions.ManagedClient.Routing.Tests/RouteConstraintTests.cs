@@ -2,7 +2,7 @@ using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MQTTnet.Extensions.ManagedClient.Routing.Constraints;
 
-namespace MQTTnet.AspNetCore.Routing.Tests;
+namespace MQTTnet.Extensions.ManagedClient.Routing.Tests;
 
 [TestClass]
 public class RouteConstraintTests

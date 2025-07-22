@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MQTTnet.Extensions.ManagedClient.Routing.Templates;
 
-namespace MQTTnet.AspNetCore.Routing.Tests;
+namespace MQTTnet.Extensions.ManagedClient.Routing.Tests;
 
 [TestClass]
 public class RouteTemplateParserTests

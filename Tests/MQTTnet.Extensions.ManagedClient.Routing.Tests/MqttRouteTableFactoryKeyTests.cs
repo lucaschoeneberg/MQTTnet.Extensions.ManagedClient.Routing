@@ -3,7 +3,7 @@ using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MQTTnet.Extensions.ManagedClient.Routing.Routing;
 
-namespace MQTTnet.AspNetCore.Routing.Tests;
+namespace MQTTnet.Extensions.ManagedClient.Routing.Tests;
 
 [TestClass]
 public class MqttRouteTableFactoryKeyTests

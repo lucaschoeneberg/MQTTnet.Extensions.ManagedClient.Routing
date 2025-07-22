@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32825.248
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MQTTnet.AspNetCore.Routing", "Source\MQTTnet.AspNetCore.Routing.csproj", "{B1CFA8BF-FEBA-4978-86A6-D052C4C44BA8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MQTTnet.Extensions.ManagedClient.Routing", "Source\MQTTnet.Extensions.ManagedClient.Routing.csproj", "{B1CFA8BF-FEBA-4978-86A6-D052C4C44BA8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MQTTnet.AspNetCore.Routing.Tests", "Tests\MQTTnet.AspNetCore.Routing.Tests\MQTTnet.AspNetCore.Routing.Tests.csproj", "{2CCF4E69-E59E-470B-866D-156099731473}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MQTTnet.Extensions.ManagedClient.Routing.Tests", "Tests\MQTTnet.Extensions.ManagedClient.Routing.Tests\MQTTnet.Extensions.ManagedClient.Routing.Tests.csproj", "{2CCF4E69-E59E-470B-866D-156099731473}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

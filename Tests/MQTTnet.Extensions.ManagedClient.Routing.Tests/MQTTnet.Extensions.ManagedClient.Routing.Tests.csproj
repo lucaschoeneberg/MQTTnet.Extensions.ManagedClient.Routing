@@ -4,9 +4,9 @@
         <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
 
         <IsPackable>false</IsPackable>
-        <AssemblyName>MQTTnet.AspNetCore.Routing.Tests</AssemblyName>
+        <AssemblyName>MQTTnet.Extensions.ManagedClient.Routing.Tests</AssemblyName>
 
-        <RootNamespace>MQTTnet.AspNetCore.Routing.Tests</RootNamespace>
+        <RootNamespace>MQTTnet.Extensions.ManagedClient.Routing.Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
@@ -15,6 +15,6 @@
         <PackageReference Include="MSTest.TestFramework" Version="3.9.3" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\Source\MQTTnet.AspNetCore.Routing.csproj"/>
+        <ProjectReference Include="..\..\Source\MQTTnet.Extensions.ManagedClient.Routing.csproj"/>
     </ItemGroup>
 </Project>

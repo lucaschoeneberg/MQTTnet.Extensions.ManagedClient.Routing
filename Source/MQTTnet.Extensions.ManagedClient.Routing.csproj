@@ -29,12 +29,12 @@
         <AssemblyName>MQTTnet.Extensions.ManagedClient.Routing</AssemblyName>
         <RootNamespace>MQTTnet.Extensions.ManagedClient.Routing</RootNamespace>
         <PackageId>MQTTnet.Extensions.ManagedClient.Routing</PackageId>
-        <PackageReadmeFile>../README.md</PackageReadmeFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
 
     </PropertyGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-            <_Parameter1>MQTTnet.AspNetCore.Routing.Tests</_Parameter1>
+            <_Parameter1>MQTTnet.Extensions.ManagedClient.Routing.Tests</_Parameter1>
         </AssemblyAttribute>
     </ItemGroup>
 

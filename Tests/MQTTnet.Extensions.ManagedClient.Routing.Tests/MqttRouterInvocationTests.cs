@@ -10,7 +10,7 @@ using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
 using MQTTnet.Extensions.ManagedClient.Routing.Extensions;
 using MQTTnet.Extensions.ManagedClient.Routing.Routing;
 
-namespace MQTTnet.AspNetCore.Routing.Tests;
+namespace MQTTnet.Extensions.ManagedClient.Routing.Tests;
 
 [MqttRoute("test")]
 public class TestController : MqttBaseController
