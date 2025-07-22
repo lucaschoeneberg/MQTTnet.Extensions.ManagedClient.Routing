@@ -9,9 +9,9 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Globalization;
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MQTTnet.Client;
 using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
@@ -47,7 +47,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 // In newer versions the application message is accepted via
                 // the AcceptPublish flag rather than the deprecated
                 // ProcessingFailed property.
-                context.AcceptPublish = allowUnmatchedRoutes;
+                context.ProcessingFailed = !allowUnmatchedRoutes;
             }
             else
             {
@@ -106,8 +106,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                     // Ensure message is marked as accepted when the route is
                     // processed successfully.
-                    context.AcceptPublish = true;
-
+                    context.ProcessingFailed = false;
+    
                     if (parameters.Length == 0)
                     {
                         await HandlerInvoker(routeContext.Handler, classInstance, null).ConfigureAwait(false);
@@ -131,7 +131,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                                 $"Unable to match route parameters to all arguments. See inner exception for details.");
 
                             // Parameter matching failed; reject the message.
-                            context.AcceptPublish = false;
+                            context.ProcessingFailed = true;
                         }
                         catch (TargetInvocationException ex)
                         {
@@ -139,14 +139,14 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                                 $"Unhandled MQTT action exception. See inner exception for details.");
 
                             // This is an unhandled exception from the invoked action
-                            context.AcceptPublish = false;
+                            context.ProcessingFailed = true;
                         }
                         catch (Exception ex)
                         {
                             logger.LogError(ex, "Unable to invoke Mqtt Action.  See inner exception for details.");
 
                             // Unexpected error; reject the message.
-                            context.AcceptPublish = false;
+                            context.ProcessingFailed = true;
                         }
                     }
                 }
@@ -187,10 +187,20 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             {
                 JsonSerializerOptions? defaultOptions =
                     serviceProvider.GetService<MqttRoutingOptions>()?.SerializerOptions;
-                return JsonSerializer.Deserialize(controllerContext.MqttContext.ApplicationMessage.Payload,
-                    param.ParameterType,
-                    defaultOptions
-                );
+                if (controllerContext.MqttContext?.ApplicationMessage?.Payload == null)
+                {
+                    return param.ParameterType.IsValueType ? Activator.CreateInstance(param.ParameterType) : null;
+                }
+
+                try
+                {
+                    var jsonString = System.Text.Encoding.UTF8.GetString(controllerContext.MqttContext.ApplicationMessage.Payload);
+                    return JsonSerializer.Deserialize(jsonString, param.ParameterType, defaultOptions ?? new JsonSerializerOptions());
+                }
+                catch (JsonException ex)
+                {
+                    throw new ArgumentException($"Fehler bei der Deserialisierung des Payloads zum Typ {param.ParameterType.Name}", ex);
+                }
             }
 
             if (!availableParameters.TryGetValue(param.Name, out object? value))
@@ -199,11 +209,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 {
                     return null;
                 }
-                else
-                {
-                    throw new ArgumentException(
-                        $"No matching route parameter for \"{param.ParameterType.Name} {param.Name}\"", param.Name);
-                }
+
+                throw new ArgumentException(
+                    $"No matching route parameter for \"{param.ParameterType.Name} {param.Name}\"", param.Name);
             }
 
             if (param.ParameterType.IsInstanceOfType(value)) return value;
