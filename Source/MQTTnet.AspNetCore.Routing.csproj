@@ -10,7 +10,7 @@
         </Description>
         <Copyright>Copyright (c) Atlas Lift Tech Inc. 2021</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageTags>MQTT Message Queue Telemetry Transport MQTTClient MQTTBroker Broker NETStandard IoT InternetOfThings Messaging Hardware Arduino Sensor Actuator M2M ESP Smart Home Cities Automation Xamarin Blazor AspNetCore</PackageTags>
+        <PackageTags>MQTT;MQTTClient;MQTTBroker;IoT;Messaging;Arduino;Sensor;Actuator;M2M;ESP;SmartHome;Automation;Xamarin;Blazor;AspNetCore</PackageTags>
         <Company>Atlas Lift Tech Inc;IoTSharp</Company>
         <Authors>Anton Vishnyak;maikebing;lucaschoeneberg</Authors>
         <AssemblyVersion>1.0.3</AssemblyVersion>
