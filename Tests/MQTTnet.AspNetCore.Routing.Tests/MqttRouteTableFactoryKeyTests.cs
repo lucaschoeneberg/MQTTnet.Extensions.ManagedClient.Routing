@@ -55,14 +55,16 @@ public class MqttRouteTableFactoryKeyTests
 
         var keyType = GetKeyType();
         var ctor = keyType.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null,
-            new[] { typeof(Assembly[]) }, null);
+            [typeof(Assembly[])], null);
 
-        var key1 = ctor.Invoke(new object[] { new[] { assembly1 } });
-        var key2 = ctor.Invoke(new object[] { new[] { assembly2 } });
+        Assert.IsNotNull(ctor);
+
+        var key1 = ctor.Invoke([new[] { assembly1 }]);
+        var key2 = ctor.Invoke([new[] { assembly2 }]);
 
         // Aufruf der Equals-Methode über Reflection
-        var equalsMethod = keyType.GetMethod("Equals", new[] { typeof(object) });
-        var result = (bool)equalsMethod.Invoke(key1, new[] { key2 });
+        var equalsMethod = keyType.GetMethod("Equals", [typeof(object)]);
+        var result = equalsMethod != null && (bool)equalsMethod.Invoke(key1, [key2])!;
 
         Assert.IsFalse(result, "Keys mit unterschiedlichen Assemblies sollten nicht gleich sein");
     }
