@@ -16,12 +16,12 @@
         <AssemblyVersion>0.4.0</AssemblyVersion>
         <FileVersion>0.4.0</FileVersion>
         <LangVersion>default</LangVersion>
-        <RepositoryUrl>https://github.com/lucaschoeneberg/MQTTnet.AspNetCore.Routing</RepositoryUrl>
+        <RepositoryUrl>https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing</RepositoryUrl>
         <RepositoryType>GIT</RepositoryType>
         <PackageReleaseNotes>Build on top of https://github.com/IoTSharp/MQTTnet.AspNetCore.Routing</PackageReleaseNotes>
         <Version>1.0.2</Version>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-        <PackageProjectUrl>https://github.com/lucaschoeneberg/MQTTnet.AspNetCore.Routing</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing</PackageProjectUrl>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
