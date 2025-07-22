@@ -16,7 +16,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
     internal static class MqttRouteTableFactory
     {
-        private static readonly ConcurrentDictionary<Key, MqttRouteTable> Cache = new ConcurrentDictionary<Key, MqttRouteTable>();
+        private static readonly ConcurrentDictionary<Key, MqttRouteTable> Cache = new();
+
         public static readonly IComparer<MqttRoute> RoutePrecedence = Comparer<MqttRoute>.Create(RouteComparison);
 
         /// <summary>
@@ -39,8 +40,11 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
             var actions = asm.SelectMany(a => a.GetTypes())
                 .Where(type => type.GetCustomAttribute(typeof(MqttControllerAttribute), true) != null)
-                .SelectMany(type => type.GetMethods(BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Public))
-                .Where(m => !m.GetCustomAttributes(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), true).Any() && !m.IsDefined(typeof(NonActionAttribute)));
+                .SelectMany(type =>
+                    type.GetMethods(BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Public))
+                .Where(m =>
+                    !m.GetCustomAttributes(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), true)
+                        .Any() && !m.IsDefined(typeof(NonActionAttribute)));
 
             var routeTable = Create(actions);
 
@@ -82,8 +86,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                 // If an action starts with a /, we throw away the inherited portion of the path. We don't process ~/
                 // because it wouldn't make sense in the context of Mqtt routing which has no concept of relative paths.
-                var templates = controllerTemplates.SelectMany((c) => routeAttributes, (c, a) =>  $"{c}{a}").ToArray();
-              
+                var templates = controllerTemplates.SelectMany((c) => routeAttributes, (c, a) => $"{c}{a}").ToArray();
+
                 templatesByHandler.Add(action, templates);
             }
 
@@ -121,6 +125,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         var haveparams = entry.ControllerTemplate.Segments.Any(c => c.IsParameter);
                         entry.HaveControllerParameter = haveparams;
                     }
+
                     routes.Add(entry);
                 }
             }
@@ -259,7 +264,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         break;
                     default:
                     {
-                        var comparison = string.Compare(xSegment.Value, ySegment.Value, StringComparison.OrdinalIgnoreCase);
+                        var comparison = string.Compare(xSegment.Value, ySegment.Value,
+                            StringComparison.OrdinalIgnoreCase);
 
                         if (comparison != 0)
                         {
