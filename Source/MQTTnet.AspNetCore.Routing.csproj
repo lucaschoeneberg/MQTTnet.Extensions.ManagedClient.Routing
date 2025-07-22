@@ -29,7 +29,7 @@
         <AssemblyName>MQTTnet.Extensions.ManagedClient.Routing</AssemblyName>
         <RootNamespace>MQTTnet.Extensions.ManagedClient.Routing</RootNamespace>
         <PackageId>MQTTnet.Extensions.ManagedClient.Routing</PackageId>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReadmeFile>../README.md</PackageReadmeFile>
 
     </PropertyGroup>
     <ItemGroup>
