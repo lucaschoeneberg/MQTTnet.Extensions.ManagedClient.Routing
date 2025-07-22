@@ -16,12 +16,12 @@
         <AssemblyVersion>1.0.3</AssemblyVersion>
         <FileVersion>1.0.3</FileVersion>
         <LangVersion>default</LangVersion>
-        <RepositoryUrl>https://github.com/lucaschoeneberg/MQTTnet.AspNetCore.Routing</RepositoryUrl>
+        <RepositoryUrl>https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing</RepositoryUrl>
         <RepositoryType>GIT</RepositoryType>
         <PackageReleaseNotes>Upgraded MQTTnet to v5 and added improved routing tests and documentation.</PackageReleaseNotes>
         <Version>1.0.3</Version>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-        <PackageProjectUrl>https://github.com/lucaschoeneberg/MQTTnet.AspNetCore.Routing</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing</PackageProjectUrl>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
