@@ -176,18 +176,17 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 {
                     if (_messageQueue.Count >= Options.MaxPendingMessages)
                     {
-                        if (Options.PendingMessagesOverflowStrategy == MqttPendingMessagesOverflowStrategy.DropNewMessage)
+                        switch (Options.PendingMessagesOverflowStrategy)
                         {
-                            _logger.Verbose("Skipping publish of new application message because internal queue is full.");
-                            applicationMessageSkippedEventArgs = new ApplicationMessageSkippedEventArgs(applicationMessage);
-                            return;
-                        }
-
-                        if (Options.PendingMessagesOverflowStrategy == MqttPendingMessagesOverflowStrategy.DropOldestQueuedMessage)
-                        {
-                            removedMessage = _messageQueue.RemoveFirst();
-                            _logger.Verbose("Removed oldest application message from internal queue because it is full.");
-                            applicationMessageSkippedEventArgs = new ApplicationMessageSkippedEventArgs(removedMessage);
+                            case MqttPendingMessagesOverflowStrategy.DropNewMessage:
+                                _logger.Verbose("Skipping publish of new application message because internal queue is full.");
+                                applicationMessageSkippedEventArgs = new ApplicationMessageSkippedEventArgs(applicationMessage);
+                                return;
+                            case MqttPendingMessagesOverflowStrategy.DropOldestQueuedMessage:
+                                removedMessage = _messageQueue.RemoveFirst();
+                                _logger.Verbose("Removed oldest application message from internal queue because it is full.");
+                                applicationMessageSkippedEventArgs = new ApplicationMessageSkippedEventArgs(removedMessage);
+                                break;
                         }
                     }
 
@@ -397,10 +396,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                     {
                         if (_isCleanDisconnect)
                         {
-                            using (var disconnectTimeout = NewTimeoutToken(CancellationToken.None))
-                            {
-                                await InternalClient.DisconnectAsync(new MqttClientDisconnectOptions(), disconnectTimeout.Token).ConfigureAwait(false);
-                            }
+                            using var disconnectTimeout = NewTimeoutToken(CancellationToken.None);
+                            await InternalClient.DisconnectAsync(new MqttClientDisconnectOptions(), disconnectTimeout.Token).ConfigureAwait(false);
                         }
                     }
                     catch (OperationCanceledException)
@@ -631,11 +628,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                         subscribeOptionsBuilder.WithTopicFilter(addedSubscription);
                     }
 
-                    using (var subscribeTimeout = NewTimeoutToken(cancellationToken))
-                    {
-                        var subscribeResult = await InternalClient.SubscribeAsync(subscribeOptionsBuilder.Build(), subscribeTimeout.Token).ConfigureAwait(false);
-                        subscribeResults.Add(subscribeResult);
-                    }
+                    using var subscribeTimeout = NewTimeoutToken(cancellationToken);
+                    var subscribeResult = await InternalClient.SubscribeAsync(subscribeOptionsBuilder.Build(), subscribeTimeout.Token).ConfigureAwait(false);
+                    subscribeResults.Add(subscribeResult);
                 }
             }
             catch (Exception exception)
@@ -741,13 +736,11 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 
                 if (acceptPublish)
                 {
-                    using (var publishTimeout = NewTimeoutToken(cancellationToken))
-                    {
-                        await InternalClient.PublishAsync(message.ApplicationMessage, publishTimeout.Token).ConfigureAwait(false);
-                    }
+                    using var publishTimeout = NewTimeoutToken(cancellationToken);
+                    await InternalClient.PublishAsync(message.ApplicationMessage, publishTimeout.Token).ConfigureAwait(false);
                 }
 
-                using (await _messageQueueLock.EnterAsync().ConfigureAwait(false)) //lock to avoid conflict with this.PublishAsync
+                using (await _messageQueueLock.EnterAsync(cancellationToken).ConfigureAwait(false)) //lock to avoid conflict with this.PublishAsync
                 {
                     // While publishing this message, this.PublishAsync could have booted this
                     // message off the queue to make room for another (when using a cap
@@ -778,7 +771,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                     //contradict the expected behavior of QoS 1 and 2, that's also true
                     //for the usage of a message queue cap, so it's still consistent
                     //with prior behavior in that way.
-                    using (await _messageQueueLock.EnterAsync().ConfigureAwait(false)) //lock to avoid conflict with this.PublishAsync
+                    using (await _messageQueueLock.EnterAsync(cancellationToken).ConfigureAwait(false)) //lock to avoid conflict with this.PublishAsync
                     {
                         _messageQueue.RemoveFirst(i => i.Id.Equals(message.Id));
 
