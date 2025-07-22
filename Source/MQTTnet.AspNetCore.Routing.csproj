@@ -29,6 +29,7 @@
         <AssemblyName>MQTTnet.Extensions.ManagedClient.Routing</AssemblyName>
         <RootNamespace>MQTTnet.Extensions.ManagedClient.Routing</RootNamespace>
         <PackageId>MQTTnet.Extensions.ManagedClient.Routing</PackageId>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
 
     </PropertyGroup>
     <ItemGroup>
@@ -40,5 +41,9 @@
     <ItemGroup>
         <PackageReference Include="MQTTnet" Version="5.0.1.1416"/>
         <PackageReference Include="MQTTnet.AspNetCore" Version="5.0.1.1416"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="../README.md" Pack="true" PackagePath="" PackageCopyToOutput="true" />
     </ItemGroup>
 </Project>
