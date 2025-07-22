@@ -10,18 +10,18 @@
         </Description>
         <Copyright>Copyright (c) Atlas Lift Tech Inc. 2021</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageTags>MQTT Message Queue Telemetry Transport MQTTClient MQTTBroker Broker NETStandard IoT InternetOfThings Messaging Hardware Arduino Sensor Actuator M2M ESP Smart Home Cities Automation Xamarin Blazor AspNetCore</PackageTags>
+        <PackageTags>MQTT;MQTTClient;MQTTBroker;IoT;Messaging;Arduino;Sensor;Actuator;M2M;ESP;SmartHome;Automation;Xamarin;Blazor;AspNetCore</PackageTags>
         <Company>Atlas Lift Tech Inc;IoTSharp</Company>
         <Authors>Anton Vishnyak;maikebing;lucaschoeneberg</Authors>
-        <AssemblyVersion>0.4.0</AssemblyVersion>
-        <FileVersion>0.4.0</FileVersion>
+        <AssemblyVersion>1.0.3</AssemblyVersion>
+        <FileVersion>1.0.3</FileVersion>
         <LangVersion>default</LangVersion>
-        <RepositoryUrl>https://github.com/lucaschoeneberg/MQTTnet.AspNetCore.Routing</RepositoryUrl>
+        <RepositoryUrl>https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing</RepositoryUrl>
         <RepositoryType>GIT</RepositoryType>
-        <PackageReleaseNotes>Build on top of https://github.com/IoTSharp/MQTTnet.AspNetCore.Routing</PackageReleaseNotes>
-        <Version>1.0.2</Version>
+        <PackageReleaseNotes>Upgraded MQTTnet to v5 and added improved routing tests and documentation.</PackageReleaseNotes>
+        <Version>1.0.3</Version>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-        <PackageProjectUrl>https://github.com/lucaschoeneberg/MQTTnet.AspNetCore.Routing</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing</PackageProjectUrl>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
