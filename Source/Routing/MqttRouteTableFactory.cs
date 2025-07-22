@@ -140,9 +140,10 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         }
 
         /// <summary>
-        /// Given a route template string suchs a "[controller]/[action]" replace the tokens with the values provided.
-        /// /// Controllers with a suffix of "Controller" will be chopped to exclude the word Controller from the
-        /// returns route string.
+        /// Given a route template string such as "[controller]/[action]" replace the tokens with the values provided.
+        /// Controllers with a suffix of "Controller" will be chopped to exclude the word Controller from the
+        /// returned route string. Tokens can be escaped using double brackets "[[controller]]" and "[[action]]" to
+        /// produce the literal text "[controller]" or "[action]" in the resulting route.
         /// </summary>
         /// <param name="template">Template string</param>
         /// <param name="controllerName">Name of the controller object</param>
@@ -150,11 +151,18 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         /// <returns>String with replaced values</returns>
         private static string ReplaceTokens(string template, string controllerName, string actionName)
         {
-            // In a future enhancement, we may allow escaping tokens with a "[[" to have feature parity with AspNet routing.
+            // Allow token escaping using double brackets like [[controller]] or [[action]]
+            const string EscapedController = "__escaped_controller__";
+            const string EscapedAction = "__escaped_action__";
+
             return template
+                .Replace("[[controller]]", EscapedController)
+                .Replace("[[action]]", EscapedAction)
                 // Strip "Controller" suffix from controller name if needed
                 .Replace("[controller]", controllerName.EndsWith("Controller") ? controllerName[..^10] : controllerName)
-                .Replace("[action]", actionName);
+                .Replace("[action]", actionName)
+                .Replace(EscapedController, "[controller]")
+                .Replace(EscapedAction, "[action]");
         }
 
         /// <summary>
