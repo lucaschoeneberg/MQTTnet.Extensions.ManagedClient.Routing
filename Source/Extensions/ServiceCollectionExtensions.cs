@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using MQTTnet.Extensions.ManagedClient.Routing.ManagedClient;
@@ -90,40 +91,16 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             return opt;
         }
 
-
         public static IApplicationBuilder UseAttributeRouting(this IApplicationBuilder app,
             bool allowUnmatchedRoutes = false)
         {
             var router = app.ApplicationServices.GetRequiredService<MqttRouter>();
             var client = app.ApplicationServices.GetRequiredService<IManagedMqttClient>();
             var interceptor = app.ApplicationServices.GetService<IRouteInvocationInterceptor>();
-            client.ApplicationMessageReceivedAsync += async (args) =>
-            {
-                object correlationObject = null;
-                if (interceptor != null)
-                {
-                    correlationObject = await interceptor.RouteExecuting(args);
-                }
 
-                try
-                {
-                    await router.OnIncomingApplicationMessage(app.ApplicationServices, args, allowUnmatchedRoutes);
+            client.ApplicationMessageReceivedAsync += async args =>
+                await HandleMqttMessage(router, interceptor, app.ApplicationServices, args, allowUnmatchedRoutes);
 
-                    if (interceptor != null)
-                    {
-                        await interceptor.RouteExecuted(correlationObject, args, null);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (interceptor != null)
-                    {
-                        await interceptor.RouteExecuted(correlationObject, args, ex);
-                    }
-
-                    throw;
-                }
-            };
             return app;
         }
 
@@ -132,32 +109,42 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
         {
             var router = svcProvider.GetRequiredService<MqttRouter>();
             var interceptor = svcProvider.GetService<IRouteInvocationInterceptor>();
-            client.ApplicationMessageReceivedAsync += async (args) =>
+
+            client.ApplicationMessageReceivedAsync += async args =>
+                await HandleMqttMessage(router, interceptor, svcProvider, args, allowUnmatchedRoutes);
+        }
+
+        private static async Task HandleMqttMessage(
+            MqttRouter router,
+            IRouteInvocationInterceptor interceptor,
+            IServiceProvider serviceProvider,
+            MqttApplicationMessageReceivedEventArgs args,
+            bool allowUnmatchedRoutes)
+        {
+            object correlationObject = null;
+            if (interceptor != null)
             {
-                object correlationObject = null;
+                correlationObject = await interceptor.RouteExecuting(args);
+            }
+
+            try
+            {
+                await router.OnIncomingApplicationMessage(serviceProvider, args, allowUnmatchedRoutes);
+
                 if (interceptor != null)
                 {
-                    correlationObject = await interceptor.RouteExecuting(args);
+                    await interceptor.RouteExecuted(correlationObject, args, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (interceptor != null)
+                {
+                    await interceptor.RouteExecuted(correlationObject, args, ex);
                 }
 
-                try
-                {
-                    await router.OnIncomingApplicationMessage(svcProvider, args, allowUnmatchedRoutes);
-                    if (interceptor != null)
-                    {
-                        await interceptor.RouteExecuted(correlationObject, args, null);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (interceptor != null)
-                    {
-                        await interceptor.RouteExecuted(correlationObject, args, ex);
-                    }
-
-                    throw;
-                }
-            };
+                throw;
+            }
         }
     }
 }
