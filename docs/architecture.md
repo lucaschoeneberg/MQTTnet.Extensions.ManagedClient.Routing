@@ -17,7 +17,7 @@ This project adds ASP.NET‑style routing on top of MQTTnet's managed client. Co
 ### Routing attributes
 
 - **`MqttControllerAttribute`** – Marks a class as a controller that can contain routed actions.
-- **`MqttRouteAttribute`** – Specifies the topic template for a controller or action. Tokens such as `[controller]` and `[action]` are replaced with the controller and method names.
+- **`MqttRouteAttribute`** – Specifies the topic template for a controller or action. Tokens such as `[controller]` and `[action]` are replaced with the controller and method names. Use double brackets like `[[controller]]` or `[[action]]` to include the literal token text.
 - **`FromPayloadAttribute`** – Applied to method parameters to deserialize the message payload with the configured JSON options.
 - **`MqttControllerContextAttribute`** – Applied to a property when using custom controllers so that the routing infrastructure can set the `MqttControllerContext` instance.
 
