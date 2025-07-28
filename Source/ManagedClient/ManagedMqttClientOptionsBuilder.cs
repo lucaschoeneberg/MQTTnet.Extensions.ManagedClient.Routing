@@ -9,7 +9,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 {
     public class ManagedMqttClientOptionsBuilder
     {
-        readonly ManagedMqttClientOptions _options = new ManagedMqttClientOptions();
+        readonly ManagedMqttClientOptions _options = new();
         MqttClientOptionsBuilder _clientOptionsBuilder;
 
         public ManagedMqttClientOptionsBuilder WithMaxPendingMessages(int value)
