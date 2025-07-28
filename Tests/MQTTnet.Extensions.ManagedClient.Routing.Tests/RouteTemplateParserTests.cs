@@ -128,21 +128,15 @@ public class RouteTemplateParserTests
         });
 
         // Assert
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
     public void Parse_EmptyRoutesShouldFail()
     {
-        // Arrange & Act
-        var emptyResult = TemplateParser.ParseTemplate("");
-        var slashResult = TemplateParser.ParseTemplate("/");
-
-        // Assert
-        Assert.AreEqual(string.Empty, emptyResult.TemplateText);
-        Assert.AreEqual(0, emptyResult.Segments.Count);
-        Assert.AreEqual(string.Empty, slashResult.TemplateText);
-        Assert.AreEqual(0, slashResult.Segments.Count);
+        // Arrange & Act & Assert
+        Assert.ThrowsExactly<InvalidOperationException>(() => TemplateParser.ParseTemplate(""));
+        Assert.ThrowsExactly<InvalidOperationException>(() => TemplateParser.ParseTemplate("/"));
     }
 
     [TestMethod]
@@ -154,7 +148,7 @@ public class RouteTemplateParserTests
         // Act
 
         // Assert
-        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
+        Assert.ThrowsExactly<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
     }
 
     [TestMethod]
@@ -166,7 +160,7 @@ public class RouteTemplateParserTests
         // Act
 
         // Assert
-        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
+        Assert.ThrowsExactly<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
     }
 
     [TestMethod]
@@ -178,7 +172,7 @@ public class RouteTemplateParserTests
         // Act
 
         // Assert
-        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
+        Assert.ThrowsExactly<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
     }
 
     [TestMethod]
@@ -190,7 +184,7 @@ public class RouteTemplateParserTests
         // Act
 
         // Assert
-        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
+        Assert.ThrowsExactly<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
     }
 
     [TestMethod]
@@ -202,7 +196,7 @@ public class RouteTemplateParserTests
         // Act
 
         // Assert
-        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
+        Assert.ThrowsExactly<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
     }
 
     [TestMethod]
@@ -214,6 +208,6 @@ public class RouteTemplateParserTests
         // Act
 
         // Assert
-        Assert.ThrowsException<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
+        Assert.ThrowsExactly<InvalidOperationException>(() => TemplateParser.ParseTemplate(template));
     }
 }
