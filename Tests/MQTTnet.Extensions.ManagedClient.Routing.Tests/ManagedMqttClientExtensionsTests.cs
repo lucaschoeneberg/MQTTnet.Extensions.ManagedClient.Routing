@@ -4,10 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MQTTnet;
-using MQTTnet.Client;
 using MQTTnet.Protocol;
 using MQTTnet.Extensions.ManagedClient.Routing.ManagedClient;
+using MQTTnet.Packets;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Tests;
 
