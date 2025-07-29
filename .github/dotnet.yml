@@ -1,0 +1,36 @@
+name: .NET CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet: ['8.0.x', '9.0.x']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ matrix.dotnet }}
+        id: setup
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore MQTTnet.Extensions.ManagedClient.Routing.sln
+
+      - name: Build
+        run: dotnet build MQTTnet.Extensions.ManagedClient.Routing.sln --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test MQTTnet.Extensions.ManagedClient.Routing.sln --no-build --configuration Release
