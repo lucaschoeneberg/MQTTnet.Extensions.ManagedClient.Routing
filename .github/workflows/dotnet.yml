@@ -9,7 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet: ['8.0.x', '9.0.x']
+        include:
+          - dotnet: '8.0.x'
+            target: 'net8.0'
+          - dotnet: '9.0.x'
+            target: 'net8.0;net9.0'
+
     steps:
       - uses: actions/checkout@v4
 
