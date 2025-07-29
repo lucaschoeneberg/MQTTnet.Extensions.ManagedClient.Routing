@@ -7,7 +7,7 @@ using MQTTnet.Diagnostics.Logger;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 {
-    public static class MqttFactoryExtensions
+    public static class MqttClientFactoryExtensions
     {
         public static IManagedMqttClient CreateManagedMqttClient(this MqttClientFactory factory,
             IMqttClient mqttClient = null)

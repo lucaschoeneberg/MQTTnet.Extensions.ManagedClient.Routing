@@ -1,6 +1,5 @@
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MQTTnet.Client;
 using MQTTnet.Extensions.ManagedClient.Routing.ManagedClient;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Tests;
