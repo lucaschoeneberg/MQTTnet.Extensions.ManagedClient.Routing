@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Public API tracking (`Source/PublicApi.Shipped.txt`): new APIs must go
+  to `PublicApi.Unshipped.txt` first; CI fails otherwise.
+- Symbol packages (`.snupkg`) are built and published alongside the NuGet
+  package.
+- First-party line coverage gate (75%, vendored fork excluded) enforced in
+  CI; release notes are now drafted automatically per merged PR.
+
 ### Changed
 
 - Package and assembly versions are now derived from `v*` git tags via

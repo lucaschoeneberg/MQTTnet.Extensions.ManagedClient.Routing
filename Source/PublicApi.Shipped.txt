@@ -1,0 +1,180 @@
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.FromPayloadAttribute
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.FromPayloadAttribute.FromPayloadAttribute() -> void
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttControllerAttribute
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttControllerAttribute.MqttControllerAttribute() -> void
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttControllerContextAttribute
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttControllerContextAttribute.MqttControllerContextAttribute() -> void
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttRouteAttribute
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttRouteAttribute.MqttRouteAttribute() -> void
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttRouteAttribute.MqttRouteAttribute(string template) -> void
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttRouteAttribute.Name.get -> string
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttRouteAttribute.Name.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.Attributes.MqttRouteAttribute.Template.get -> string
+MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageProcessedEventArgs
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageProcessedEventArgs.ApplicationMessage.get -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageProcessedEventArgs.ApplicationMessageProcessedEventArgs(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage applicationMessage, System.Exception exception) -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageProcessedEventArgs.Exception.get -> System.Exception
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageSkippedEventArgs
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageSkippedEventArgs.ApplicationMessage.get -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageSkippedEventArgs.ApplicationMessageSkippedEventArgs(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage applicationMessage) -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ConnectingFailedEventArgs
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ConnectingFailedEventArgs.ConnectingFailedEventArgs(MQTTnet.MqttClientConnectResult connectResult, System.Exception exception) -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ConnectingFailedEventArgs.ConnectResult.get -> MQTTnet.MqttClientConnectResult
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ConnectingFailedEventArgs.Exception.get -> System.Exception
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.ApplicationMessageProcessedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageProcessedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.ApplicationMessageReceivedAsync -> System.Func<MQTTnet.MqttApplicationMessageReceivedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.ApplicationMessageSkippedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageSkippedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.ConnectedAsync -> System.Func<MQTTnet.MqttClientConnectedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.ConnectingFailedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ConnectingFailedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.ConnectionStateChangedAsync -> System.Func<System.EventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.DisconnectedAsync -> System.Func<MQTTnet.MqttClientDisconnectedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.EnqueueAsync(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage applicationMessage) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.EnqueueAsync(MQTTnet.MqttApplicationMessage applicationMessage) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.InternalClient.get -> MQTTnet.IMqttClient
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.IsConnected.get -> bool
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.IsStarted.get -> bool
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.Options.get -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.PendingApplicationMessagesCount.get -> int
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.PingAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.StartAsync(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions options) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.StopAsync(bool cleanDisconnect = true) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.SubscribeAsync(System.Collections.Generic.IEnumerable<MQTTnet.Packets.MqttTopicFilter> topicFilters) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.SubscriptionsChangedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SubscriptionsChangedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.SynchronizingSubscriptionsFailedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedProcessFailedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient.UnsubscribeAsync(System.Collections.Generic.IEnumerable<string> topics) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClientStorage
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClientStorage.LoadQueuedMessagesAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.IList<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage>>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClientStorage.SaveQueuedMessagesAsync(System.Collections.Generic.IList<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage> messages) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.InterceptingPublishMessageEventArgs
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.InterceptingPublishMessageEventArgs.AcceptPublish.get -> bool
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.InterceptingPublishMessageEventArgs.AcceptPublish.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.InterceptingPublishMessageEventArgs.ApplicationMessage.get -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.InterceptingPublishMessageEventArgs.InterceptingPublishMessageEventArgs(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage applicationMessage) -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage.ApplicationMessage.get -> MQTTnet.MqttApplicationMessage
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage.ApplicationMessage.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage.Id.get -> System.Guid
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage.Id.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage.ManagedMqttApplicationMessage() -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessageBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessageBuilder.Build() -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessageBuilder.ManagedMqttApplicationMessageBuilder() -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessageBuilder.WithApplicationMessage(MQTTnet.MqttApplicationMessage applicationMessage) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessageBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessageBuilder.WithApplicationMessage(System.Action<MQTTnet.MqttApplicationMessageBuilder> builder) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessageBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessageBuilder.WithId(System.Guid id) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessageBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.ApplicationMessageProcessedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageProcessedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.ApplicationMessageReceivedAsync -> System.Func<MQTTnet.MqttApplicationMessageReceivedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.ApplicationMessageSkippedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ApplicationMessageSkippedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.ConnectedAsync -> System.Func<MQTTnet.MqttClientConnectedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.ConnectingFailedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ConnectingFailedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.ConnectionStateChangedAsync -> System.Func<System.EventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.DisconnectedAsync -> System.Func<MQTTnet.MqttClientDisconnectedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.EnqueueAsync(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage applicationMessage) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.EnqueueAsync(MQTTnet.MqttApplicationMessage applicationMessage) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.InterceptPublishMessageAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.InterceptingPublishMessageEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.InternalClient.get -> MQTTnet.IMqttClient
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.IsConnected.get -> bool
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.IsStarted.get -> bool
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.ManagedMqttClient(MQTTnet.IMqttClient mqttClient, MQTTnet.Diagnostics.Logger.IMqttNetLogger logger) -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.Options.get -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.PendingApplicationMessagesCount.get -> int
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.PingAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.StartAsync(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions options) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.StopAsync(bool cleanDisconnect = true) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.SubscribeAsync(System.Collections.Generic.IEnumerable<MQTTnet.Packets.MqttTopicFilter> topicFilters) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.SubscriptionsChangedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SubscriptionsChangedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.SynchronizingSubscriptionsFailedAsync -> System.Func<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedProcessFailedEventArgs, System.Threading.Tasks.Task>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient.UnsubscribeAsync(System.Collections.Generic.IEnumerable<string> topics) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientExtensions
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.AutoReconnectDelay.get -> System.TimeSpan
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.AutoReconnectDelay.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.ClientOptions.get -> MQTTnet.MqttClientOptions
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.ClientOptions.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.ConnectionCheckInterval.get -> System.TimeSpan
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.ConnectionCheckInterval.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.ManagedMqttClientOptions() -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxPendingMessages.get -> int
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxPendingMessages.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxTopicFiltersInSubscribeUnsubscribePackets.get -> int
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxTopicFiltersInSubscribeUnsubscribePackets.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.PendingMessagesOverflowStrategy.get -> MQTTnet.Server.MqttPendingMessagesOverflowStrategy
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.PendingMessagesOverflowStrategy.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.Storage.get -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClientStorage
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.Storage.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.Build() -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.ManagedMqttClientOptionsBuilder() -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.WithAutoReconnectDelay(System.TimeSpan value) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.WithClientOptions(MQTTnet.MqttClientOptions value) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.WithClientOptions(MQTTnet.MqttClientOptionsBuilder builder) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.WithClientOptions(System.Action<MQTTnet.MqttClientOptionsBuilder> options) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.WithMaxPendingMessages(int value) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.WithMaxTopicFiltersInSubscribeUnsubscribePackets(int value) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.WithPendingMessagesOverflowStrategy(MQTTnet.Server.MqttPendingMessagesOverflowStrategy value) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.WithStorage(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClientStorage value) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.AddAsync(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage applicationMessage) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.LoadQueuedMessagesAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.List<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage>>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.ManagedMqttClientStorageManager(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClientStorage storage) -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.RemoveAsync(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage applicationMessage) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedProcessFailedEventArgs
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedProcessFailedEventArgs.AddedSubscriptions.get -> System.Collections.Generic.List<string>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedProcessFailedEventArgs.Exception.get -> System.Exception
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedProcessFailedEventArgs.ManagedProcessFailedEventArgs(System.Exception exception, System.Collections.Generic.List<MQTTnet.Packets.MqttTopicFilter> addedSubscriptions, System.Collections.Generic.List<string> removedSubscriptions) -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedProcessFailedEventArgs.RemovedSubscriptions.get -> System.Collections.Generic.List<string>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.MqttClientFactoryExtensions
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ReconnectionResult
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ReconnectionResult.NotConnected = 3 -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ReconnectionResult
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ReconnectionResult.Reconnected = 1 -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ReconnectionResult
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ReconnectionResult.Recovered = 2 -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ReconnectionResult
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ReconnectionResult.StillConnected = 0 -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ReconnectionResult
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SendSubscribeUnsubscribeResult
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SendSubscribeUnsubscribeResult.SendSubscribeUnsubscribeResult(System.Collections.Generic.List<MQTTnet.MqttClientSubscribeResult> subscribeResults, System.Collections.Generic.List<MQTTnet.MqttClientUnsubscribeResult> unsubscribeResults) -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SendSubscribeUnsubscribeResult.SubscribeResults.get -> System.Collections.Generic.List<MQTTnet.MqttClientSubscribeResult>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SendSubscribeUnsubscribeResult.UnsubscribeResults.get -> System.Collections.Generic.List<MQTTnet.MqttClientUnsubscribeResult>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SubscriptionsChangedEventArgs
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SubscriptionsChangedEventArgs.SubscribeResult.get -> System.Collections.Generic.List<MQTTnet.MqttClientSubscribeResult>
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SubscriptionsChangedEventArgs.SubscriptionsChangedEventArgs(System.Collections.Generic.List<MQTTnet.MqttClientSubscribeResult> subscribeResult, System.Collections.Generic.List<MQTTnet.MqttClientUnsubscribeResult> unsubscribeResult) -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.SubscriptionsChangedEventArgs.UnsubscribeResult.get -> System.Collections.Generic.List<MQTTnet.MqttClientUnsubscribeResult>
+MQTTnet.Extensions.ManagedClient.Routing.Routing.IMqttControllerContext
+MQTTnet.Extensions.ManagedClient.Routing.Routing.IMqttControllerContext.MqttContext.get -> MQTTnet.MqttApplicationMessageReceivedEventArgs
+MQTTnet.Extensions.ManagedClient.Routing.Routing.IMqttControllerContext.MqttContext.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.Routing.IRouteInvocationInterceptor
+MQTTnet.Extensions.ManagedClient.Routing.Routing.IRouteInvocationInterceptor.RouteExecuted(object correlationObject, MQTTnet.MqttApplicationMessageReceivedEventArgs messageReceivedEventArgs, System.Exception ex) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.Routing.IRouteInvocationInterceptor.RouteExecuting(MQTTnet.MqttApplicationMessageReceivedEventArgs messageReceivedEventArgs) -> System.Threading.Tasks.Task<object>
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.ControllerContext.get -> MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttControllerContext
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.ControllerContext.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.Message.get -> MQTTnet.MqttApplicationMessage
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.MqttBaseController() -> void
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.MqttContext.get -> MQTTnet.MqttApplicationMessageReceivedEventArgs
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttControllerContext
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttControllerContext.MqttContext.get -> MQTTnet.MqttApplicationMessageReceivedEventArgs
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttControllerContext.MqttContext.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttControllerContext.MqttControllerContext() -> void
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.FromAssemblies.get -> System.Reflection.Assembly[]
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.MqttRoutingOptions() -> void
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.RouteInvocationInterceptor.get -> System.Type
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.SerializerOptions.get -> System.Text.Json.JsonSerializerOptions
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.AddMqttControllers(this Microsoft.Extensions.DependencyInjection.IServiceCollection services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.AddMqttControllers(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions> options) -> Microsoft.Extensions.DependencyInjection.IServiceCollection
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.AddMqttControllers(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Reflection.Assembly[] fromAssemblies) -> Microsoft.Extensions.DependencyInjection.IServiceCollection
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.UseAttributeRouting(this Microsoft.AspNetCore.Builder.IApplicationBuilder app, bool allowUnmatchedRoutes = false) -> Microsoft.AspNetCore.Builder.IApplicationBuilder
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithAttributeRouting(this MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient client, System.IServiceProvider svcProvider, bool allowUnmatchedRoutes = false) -> void
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithJsonSerializerOptions(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt) -> MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithJsonSerializerOptions(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt, System.Text.Json.JsonSerializerOptions options) -> MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithRouteInvocationInterceptor<T>(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt) -> void
+static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientExtensions.EnqueueAsync(this MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient managedMqttClient, string topic, string payload = null, MQTTnet.Protocol.MqttQualityOfServiceLevel qualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.AtMostOnce, bool retain = false) -> System.Threading.Tasks.Task
+static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientExtensions.SubscribeAsync(this MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient managedMqttClient, string topic, MQTTnet.Protocol.MqttQualityOfServiceLevel qualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.AtMostOnce) -> System.Threading.Tasks.Task
+static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientExtensions.UnsubscribeAsync(this MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient managedMqttClient, string topic) -> System.Threading.Tasks.Task
+static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.MqttClientFactoryExtensions.CreateManagedMqttClient(this MQTTnet.MqttClientFactory factory, MQTTnet.Diagnostics.Logger.IMqttNetLogger logger) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient
+static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.MqttClientFactoryExtensions.CreateManagedMqttClient(this MQTTnet.MqttClientFactory factory, MQTTnet.IMqttClient mqttClient = null) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient
+static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.MqttClientFactoryExtensions.CreateManagedMqttClientOptionsBuilder(this MQTTnet.MqttClientFactory _) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+virtual MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.Accepted() -> System.Threading.Tasks.Task
+virtual MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.BadMessage() -> System.Threading.Tasks.Task
+virtual MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.Ok() -> System.Threading.Tasks.Task

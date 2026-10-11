@@ -71,7 +71,9 @@
       CA1816;
       CA2012;
       CA1821;
-      CA1849
+      CA1849;
+      RS0016;
+      RS0017
     </WarningsAsErrors>
 
     <!-- Deliberately non-blocking guidance -->
@@ -83,5 +85,11 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
     <!-- Versioning from git tags (does not flow to consumers) -->
     <PackageReference Include="MinVer" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Public API tracking for the packable library only (see Source/PublicApi.*.txt).
+       Test projects do not ship an API surface. -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
   </ItemGroup>
 </Project>

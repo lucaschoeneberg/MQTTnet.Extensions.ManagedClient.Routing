@@ -105,8 +105,14 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            nupkg="Source/bin/Release/MQTTnet.Extensions.ManagedClient.Routing.${GITHUB_REF_NAME#v}.nupkg"
+            version="${GITHUB_REF_NAME#v}"
+            nupkg="Source/bin/Release/MQTTnet.Extensions.ManagedClient.Routing.${version}.nupkg"
+            snupkg="Source/bin/Release/MQTTnet.Extensions.ManagedClient.Routing.${version}.snupkg"
           else
             nupkg=$(ls -t Source/bin/Release/*.nupkg | head -n 1)
+            snupkg="${nupkg%.nupkg}.snupkg"
           fi
           dotnet nuget push "$nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          if [[ -f "$snupkg" ]]; then
+            dotnet nuget push "$snupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          fi
