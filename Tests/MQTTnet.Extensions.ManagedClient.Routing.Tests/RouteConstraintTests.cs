@@ -25,7 +25,7 @@ public class RouteConstraintTests
         var constraint = RouteConstraint.Parse("template", "value:float", "float");
 
         Assert.IsTrue(constraint.Match("3.14", out var value));
-        Assert.AreEqual(3.14f, (float)value, 0.0001f);
+        Assert.AreEqual(3.14f, (float)value!, 0.0001f);
 
         Assert.IsFalse(constraint.Match("bar", out value));
         Assert.IsNull(value);

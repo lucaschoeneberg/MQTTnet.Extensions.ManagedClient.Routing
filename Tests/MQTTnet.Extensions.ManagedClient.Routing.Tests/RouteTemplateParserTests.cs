@@ -21,7 +21,7 @@ public class RouteTemplateParserTests
         var actual = TemplateParser.ParseTemplate(template);
 
         // Assert
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
@@ -54,7 +54,7 @@ public class RouteTemplateParserTests
         var actual = TemplateParser.ParseTemplate(template);
 
         // Assert
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
@@ -70,7 +70,7 @@ public class RouteTemplateParserTests
         var actual = TemplateParser.ParseTemplate(template);
 
         // Assert
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
         Assert.IsTrue(actual.Segments[0].IsCatchAll);
     }
 
@@ -90,7 +90,7 @@ public class RouteTemplateParserTests
         });
 
         // Assert
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
@@ -109,7 +109,7 @@ public class RouteTemplateParserTests
         });
 
         // Assert
-        Assert.AreEqual(actual, expected);
+        Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]

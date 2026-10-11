@@ -3,8 +3,6 @@
 
 // Modifications Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using System;
-using System.Collections.Generic;
 using System.Reflection;
 using MQTTnet.Extensions.ManagedClient.Routing.Templates;
 
@@ -29,10 +27,10 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
         public string[] Segments { get; }
 
-        public MethodInfo Handler { get; set; }
+        public MethodInfo? Handler { get; set; }
 
-        public IReadOnlyDictionary<string, object> Parameters { get; set; }
+        public IReadOnlyDictionary<string, object?>? Parameters { get; set; }
         public bool HaveControllerParameter { get; internal set; }
-        public RouteTemplate ControllerTemplate { get; internal set; }
+        public RouteTemplate? ControllerTemplate { get; internal set; }
     }
 }

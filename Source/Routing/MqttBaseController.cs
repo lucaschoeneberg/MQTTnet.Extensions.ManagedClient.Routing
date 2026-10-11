@@ -23,10 +23,11 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         /// ControllerContext is set by controller activator. If this class is instantiated directly, it will be null.
         /// </summary>
         [MqttControllerContext]
-        public MqttControllerContext ControllerContext { get; set; }
+        public MqttControllerContext ControllerContext { get; set; } = null!;
 
         /// <summary>
-        /// Create a result that accepts the given message and publishes it to all subscribers on the topic.
+        /// Completes the action successfully. The message keeps its accepted
+        /// state; no reply is published. This is an explicit no-op marker for readability.
         /// </summary>
         /// <returns>The created <see cref="Task"/> for the reponse.</returns>
         [NonAction]
@@ -36,15 +37,16 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         }
 
         /// <summary>
-        /// Create a result that accepts the given message and publishes it to all subscribers on the topic. This is an
-        /// alias for the <see cref="Ok"/> result.
+        /// Completes the action successfully. Alias for <see cref="Ok"/>.
         /// </summary>
         /// <returns>The created <see cref="Task"/> for the reponse.</returns>
         [NonAction]
         public virtual Task Accepted() => Ok();
 
         /// <summary>
-        /// Create a result that rejects the given message and prevents publishing it to any subscribers.
+        /// Completes the action without effect. Note: this does not reject the
+        /// message by itself. Throw an exception (or set the context state) to
+        /// mark processing as failed.
         /// </summary>
         /// <returns>The created <see cref="Task"/> for the reponse.</returns>
         [NonAction]

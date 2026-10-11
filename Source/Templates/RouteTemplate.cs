@@ -1,10 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt
 // in the project root for license information. // Modifications Copyright (c) Atlas Lift Tech Inc.
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
 {
@@ -29,15 +26,15 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
             return segments.Count(template => template.IsOptional);
         }
 
-        public bool Equals(RouteTemplate other)
+        public bool Equals(RouteTemplate? other)
         {
-            return other != null &&
-                   string.Equals(TemplateText, other.TemplateText, StringComparison.Ordinal) &&
-                   Segments.Count == other.Segments.Count &&
-                   Segments.Zip(other.Segments, (a, b) => a.Equals(b)).All(equal => equal);
+            return other is not null &&
+                    string.Equals(TemplateText, other.TemplateText, StringComparison.Ordinal) &&
+                    Segments.Count == other.Segments.Count &&
+                    Segments.Zip(other.Segments, (a, b) => a.Equals(b)).All(equal => equal);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is RouteTemplate otherRouteTemplate)
             {

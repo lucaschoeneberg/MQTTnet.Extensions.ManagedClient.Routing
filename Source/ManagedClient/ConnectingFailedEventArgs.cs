@@ -1,3 +1,6 @@
+// Vendored MQTTnet ManagedClient fork - excluded from nullable analysis (see Directory.Build.props).
+#nullable disable
+
 using System;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient

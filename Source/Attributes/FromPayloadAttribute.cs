@@ -7,6 +7,6 @@ public class FromPayloadAttribute : Attribute
 {
     public FromPayloadAttribute()
     {
-        
+
     }
 }

@@ -10,22 +10,22 @@ public class MqttRouteTableFactoryKeyTests
 {
     private static Type GetKeyType()
     {
-        return typeof(MqttRouteTableFactory).GetNestedType("Key", BindingFlags.NonPublic);
+        return typeof(MqttRouteTableFactory).GetNestedType("Key", BindingFlags.NonPublic)!;
     }
 
     private static object CreateKey(Assembly[] assemblies)
     {
         var keyType = GetKeyType();
         var ctor = keyType.GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
-            null, [typeof(Assembly[])], null);
+            null, [typeof(Assembly[])], null)!;
         return ctor.Invoke([assemblies]);
     }
 
     private static bool InvokeEquals(object key1, object key2)
     {
         var keyType = GetKeyType();
-        var method = keyType.GetMethod("Equals", new[] { keyType });
-        return (bool)method.Invoke(key1, new[] { key2 });
+        var method = keyType.GetMethod("Equals", new[] { keyType })!;
+        return (bool)method.Invoke(key1, new[] { key2 })!;
     }
 
     [TestMethod]

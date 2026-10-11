@@ -9,14 +9,14 @@ public class ReplaceTokensTests
 {
     private static MethodInfo GetReplaceTokensMethod()
     {
-        return typeof(MqttRouteTableFactory).GetMethod("ReplaceTokens", BindingFlags.NonPublic | BindingFlags.Static);
+        return typeof(MqttRouteTableFactory).GetMethod("ReplaceTokens", BindingFlags.NonPublic | BindingFlags.Static)!;
     }
 
     [TestMethod]
     public void ReplaceTokens_EscapedTokensPreserved()
     {
         var method = GetReplaceTokensMethod();
-        var result = (string)method.Invoke(null, ["api/[[controller]]/[[action]]", "FooController", "Bar"]);
+        var result = (string?)method.Invoke(null, ["api/[[controller]]/[[action]]", "FooController", "Bar"]);
         Assert.AreEqual("api/[controller]/[action]", result);
     }
 
@@ -24,7 +24,7 @@ public class ReplaceTokensTests
     public void ReplaceTokens_MixedTokensReplaced()
     {
         var method = GetReplaceTokensMethod();
-        var result = (string)method.Invoke(null, ["api/[[controller]]/[action]", "SampleController", "Index"]);
+        var result = (string?)method.Invoke(null, ["api/[[controller]]/[action]", "SampleController", "Index"]);
         Assert.AreEqual("api/[controller]/Index", result);
     }
 }

@@ -11,7 +11,7 @@ public class ManagedMqttClientOptionsBuilderTests
     public void Build_WithoutClientOptions_Throws()
     {
         var builder = new ManagedMqttClientOptionsBuilder();
-        Assert.ThrowsException<InvalidOperationException>(() => builder.Build());
+        Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
     }
 
     [TestMethod]

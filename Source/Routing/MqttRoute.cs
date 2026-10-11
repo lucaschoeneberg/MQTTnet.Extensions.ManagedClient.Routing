@@ -4,9 +4,6 @@
 // Modifications Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 // Modifications Copyright (c) Mardu All rights reserved.
 
-using System.Linq;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using MQTTnet.Extensions.ManagedClient.Routing.Templates;
@@ -29,13 +26,13 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         public RouteTemplate Template { get; }
         public string[] UnusedRouteParameterNames { get; }
         public MethodInfo Handler { get; }
-        public RouteTemplate ControllerTemplate { get; internal set; }
+        public RouteTemplate? ControllerTemplate { get; internal set; }
         public bool HaveControllerParameter { get; internal set; }
 
         internal void Match(MqttRouteContext context)
         {
-            string catchAllParameterValue = Template.ContainsCatchAllSegment &&
-                                            context.Segments.Length >= Template.Segments.Count
+            string? catchAllParameterValue = Template.ContainsCatchAllSegment &&
+                                             context.Segments.Length >= Template.Segments.Count
                 ? string.Join(PathSegmentSeparator, context.Segments.Skip(Template.Segments.Count - 1))
                 : null;
 
@@ -45,7 +42,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 return;
             }
 
-            Dictionary<string, object> routeParameters = null;
+            Dictionary<string, object?>? routeParameters = null;
             var numMatchingSegments = CalculateMatchingSegments(context, ref routeParameters, catchAllParameterValue);
 
             if (!Template.ContainsCatchAllSegment && UnusedRouteParameterNames.Length > 0)
@@ -60,8 +57,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             context.ControllerTemplate = ControllerTemplate;
         }
 
-        private int CalculateMatchingSegments(MqttRouteContext context, ref Dictionary<string, object> routeParameters,
-            string catchAllParameterValue)
+        private int CalculateMatchingSegments(MqttRouteContext context, ref Dictionary<string, object?>? routeParameters,
+            string? catchAllParameterValue)
         {
             var numMatchingSegments = 0;
             for (var i = 0; i < Template.Segments.Count; i++)
@@ -70,7 +67,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 if (segment.IsCatchAll)
                 {
                     numMatchingSegments++;
-                    routeParameters ??= new Dictionary<string, object>(ParameterComparer);
+                    routeParameters ??= new Dictionary<string, object?>(ParameterComparer);
                     routeParameters[segment.Value] = catchAllParameterValue;
                     break;
                 }
@@ -84,16 +81,16 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                 numMatchingSegments++;
                 if (!segment.IsParameter) continue;
-                routeParameters ??= new Dictionary<string, object>(ParameterComparer);
+                routeParameters ??= new Dictionary<string, object?>(ParameterComparer);
                 routeParameters[segment.Value] = matchedParameterValue;
             }
 
             return numMatchingSegments;
         }
 
-        private void InitializeUnusedParameters(ref Dictionary<string, object> routeParameters)
+        private void InitializeUnusedParameters(ref Dictionary<string, object?>? routeParameters)
         {
-            routeParameters ??= new Dictionary<string, object>(ParameterComparer);
+            routeParameters ??= new Dictionary<string, object?>(ParameterComparer);
             foreach (var paramName in UnusedRouteParameterNames)
             {
                 routeParameters[paramName] = null;

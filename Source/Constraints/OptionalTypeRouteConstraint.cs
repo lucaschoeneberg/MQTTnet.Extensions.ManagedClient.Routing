@@ -21,7 +21,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Constraints
             Name = name;
         }
 
-        public override bool Match(string pathSegment, out object convertedValue)
+        public override bool Match(string? pathSegment, out object? convertedValue)
         {
             // Unset values are set to null in the Parameters object created in the RouteContext. To match this pattern,
             // unset optional parameters are converted to null.

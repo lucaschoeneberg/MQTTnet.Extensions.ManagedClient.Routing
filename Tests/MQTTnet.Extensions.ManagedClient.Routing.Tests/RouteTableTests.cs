@@ -27,19 +27,19 @@ public class RouteTableTests
                 {
                     new(routes[0], "super", false),
                     new(routes[0], "awesome", false)
-                }), null, new string[] { }),
+                }), null!, new string[] { }),
             new MqttRoute(
                 new RouteTemplate(routes[1], new List<TemplateSegment>
                 {
                     new(routes[1], "super", false),
                     new(routes[1], "cool", false)
-                }), null, new string[] { }),
+                }), null!, new string[] { }),
             new MqttRoute(
                 new RouteTemplate(routes[2], new List<TemplateSegment>
                 {
                     new(routes[2], "other", false),
                     new(routes[2], "route", false)
-                }), null, new string[] { })
+                }), null!, new string[] { })
         };
 
         // Act
@@ -60,9 +60,9 @@ public class RouteTableTests
             "other/route"
         };
 
-        var mockMethod = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")?.GetMethod("Route_Match");
-        var mockMethod2 = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")
-            ?.GetMethod("Route_Constructor");
+        var mockMethod = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")!.GetMethod("Route_Match")!;
+        var mockMethod2 = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")!
+            .GetMethod("Route_Constructor")!;
         var mockRoutes = new[]
         {
             new MqttRoute(
@@ -109,9 +109,9 @@ public class RouteTableTests
             "other/route"
         };
 
-        var MockMethod = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests").GetMethod("Route_Match");
-        var MockMethod2 = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")
-            .GetMethod("Route_Constructor");
+        var MockMethod = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")!.GetMethod("Route_Match")!;
+        var MockMethod2 = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")!
+            .GetMethod("Route_Constructor")!;
         var MockRoutes = new[]
         {
             new MqttRoute(
@@ -158,9 +158,9 @@ public class RouteTableTests
             "other/route"
         };
 
-        var MockMethod = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests").GetMethod("Route_Match");
-        var MockMethod2 = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")
-            .GetMethod("Route_Constructor");
+        var MockMethod = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")!.GetMethod("Route_Match")!;
+        var MockMethod2 = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")!
+            .GetMethod("Route_Constructor")!;
         var MockRoutes = new[]
         {
             new MqttRoute(
@@ -207,9 +207,9 @@ public class RouteTableTests
             "other/route"
         };
 
-        var MockMethod = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests").GetMethod("Route_Match");
-        var MockMethod2 = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")
-            .GetMethod("Route_Constructor");
+        var MockMethod = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")!.GetMethod("Route_Match")!;
+        var MockMethod2 = Type.GetType("MQTTnet.Extensions.ManagedClient.Routing.Tests.RouteTableTests")!
+            .GetMethod("Route_Constructor")!;
         var MockRoutes = new[]
         {
             new MqttRoute(

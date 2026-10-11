@@ -19,7 +19,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
             {
                 throw new InvalidOperationException("Route template cannot be empty or contain only a slash.");
             }
-            
+
             var originalTemplate = template;
             template = template.Trim('/');
             List<TemplateSegment> templateSegments = new();

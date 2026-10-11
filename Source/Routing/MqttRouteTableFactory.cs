@@ -3,10 +3,7 @@
 
 // Modifications Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
@@ -24,8 +21,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         /// Given a list of assemblies, find all instances of MqttControllers and wire up routing for them. Instances of
         /// controllers must inherit from MqttBaseController and be decorated with an MqttRoute attribute.
         /// </summary>
-        /// <param name="assembly">Assemblies to scan for routes</param>
-        /// <returns></returns>
+        /// <param name="assemblies">Assemblies to scan for routes</param>
+        /// <returns>The route table built from the discovered controllers.</returns>
         internal static MqttRouteTable Create(IEnumerable<Assembly> assemblies)
         {
             var enumerable = assemblies as Assembly[] ?? assemblies.ToArray();
@@ -39,11 +36,11 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             var asm = enumerable;
 
             var actions = asm.SelectMany(a => a.GetTypes())
-                .Where(type => type.GetCustomAttribute(typeof(MqttControllerAttribute), true) != null)
+                .Where(type => type.GetCustomAttribute<MqttControllerAttribute>(true) != null)
                 .SelectMany(type =>
                     type.GetMethods(BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Public))
                 .Where(m =>
-                    !m.GetCustomAttributes(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), true)
+                    !m.GetCustomAttributes<System.Runtime.CompilerServices.CompilerGeneratedAttribute>(true)
                         .Any() && !m.IsDefined(typeof(NonActionAttribute)));
 
             var routeTable = Create(actions);
@@ -61,15 +58,23 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
             foreach (var action in actions)
             {
+                var declaringType = action.DeclaringType;
+                if (declaringType == null)
+                {
+                    throw new InvalidOperationException($"{action} must have a declaring type.");
+                }
+
                 // We're deliberately using inherit = false here. // MqttRouteAttribute is defined as non-inherited,
                 // because inheriting a route attribute always causes an ambiguity. You end up with two components (base
                 // class and derived class) with the same route.
-                var controllerTemplates = action.DeclaringType.GetCustomAttributes<MqttRouteAttribute>(inherit: false)
-                    .Select(c => ReplaceTokens(c.Template, action.DeclaringType.Name, action.Name) + "/")
+                var controllerTemplates = declaringType.GetCustomAttributes<MqttRouteAttribute>(inherit: false)
+                    .Select(c => ReplaceTokens(c.Template, declaringType.Name, action.Name) + "/")
+                    .Where(c => c.Trim('/') != string.Empty)
                     .ToArray();
 
                 var routeAttributes = action.GetCustomAttributes<MqttRouteAttribute>(inherit: false)
-                    .Select(a => ReplaceTokens(a.Template, action.DeclaringType.Name, action.Name))
+                    .Select(a => ReplaceTokens(a.Template, declaringType.Name, action.Name))
+                    .Where(a => a.Trim('/') != string.Empty)
                     .ToArray();
 
                 if (controllerTemplates.Length == 0)
@@ -79,6 +84,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                 // If an action doesn't have a route attribute on it, we use the action name. Unlike Mvc/WebAPI we don't
                 // need to strip the "Get", "Put", etc. prefixes from the action because MQTT doesn't have verbs by convention.
+                // A parameterless [MqttRoute] (template "/") falls back to the action name as well.
                 if (routeAttributes.Length == 0)
                 {
                     routeAttributes = new string[] { action.Name };
@@ -118,7 +124,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         .ToArray();
                     var methodInfo = keyValuePair.Key;
                     var entry = new MqttRoute(parsedTemplate, methodInfo, unusedRouteParameterNames);
-                    var mrat = methodInfo.DeclaringType.GetCustomAttribute<MqttRouteAttribute>();
+                    var mrat = methodInfo.DeclaringType?.GetCustomAttribute<MqttRouteAttribute>();
                     if (mrat != null)
                     {
                         entry.ControllerTemplate = TemplateParser.ParseTemplate(mrat.Template);
@@ -164,7 +170,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 .Replace("[[controller]]", EscapedController)
                 .Replace("[[action]]", EscapedAction)
                 // Strip "Controller" suffix from controller name if needed
-                .Replace("[controller]", controllerName.EndsWith("Controller") ? controllerName[..^10] : controllerName)
+                .Replace("[controller]", controllerName.EndsWith("Controller", StringComparison.Ordinal) ? controllerName[..^10] : controllerName)
                 .Replace("[action]", actionName)
                 .Replace(EscapedController, "[controller]")
                 .Replace(EscapedAction, "[action]");
@@ -263,23 +269,23 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                     case true:
                         break;
                     default:
-                    {
-                        var comparison = string.Compare(xSegment.Value, ySegment.Value,
-                            StringComparison.OrdinalIgnoreCase);
-
-                        if (comparison != 0)
                         {
-                            return comparison;
-                        }
+                            var comparison = string.Compare(xSegment.Value, ySegment.Value,
+                                StringComparison.OrdinalIgnoreCase);
 
-                        break;
-                    }
+                            if (comparison != 0)
+                            {
+                                return comparison;
+                            }
+
+                            break;
+                        }
                 }
             }
 
             throw new InvalidOperationException($@"The following routes are ambiguous:
-'{x.Template.TemplateText}' in '{x.Handler.DeclaringType.FullName}.{x.Handler.Name}'
-'{y.Template.TemplateText}' in '{y.Handler.DeclaringType.FullName}.{y.Handler.Name}'
+'{x.Template.TemplateText}' in '{x.Handler.DeclaringType?.FullName}.{x.Handler.Name}'
+'{y.Template.TemplateText}' in '{y.Handler.DeclaringType?.FullName}.{y.Handler.Name}'
 ");
         }
 
@@ -292,7 +298,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 Assemblies = assemblies;
             }
 
-            public override bool Equals(object obj)
+            public override bool Equals(object? obj)
             {
                 return obj is Key other && Equals(other);
             }

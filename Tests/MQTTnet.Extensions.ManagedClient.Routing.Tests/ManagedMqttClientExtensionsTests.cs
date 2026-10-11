@@ -4,17 +4,17 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MQTTnet.Protocol;
 using MQTTnet.Extensions.ManagedClient.Routing.ManagedClient;
 using MQTTnet.Packets;
+using MQTTnet.Protocol;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Tests;
 
 class FakeManagedMqttClient : IManagedMqttClient
 {
-    public MqttApplicationMessage LastMessage;
-    public IList<MqttTopicFilter> LastSubscriptions;
-    public IList<string> LastUnsubscriptions;
+    public MqttApplicationMessage LastMessage = null!;
+    public IList<MqttTopicFilter> LastSubscriptions = null!;
+    public IList<string> LastUnsubscriptions = null!;
 
     public Task EnqueueAsync(MqttApplicationMessage applicationMessage)
     {
@@ -55,10 +55,10 @@ class FakeManagedMqttClient : IManagedMqttClient
     public event Func<ManagedProcessFailedEventArgs, Task> SynchronizingSubscriptionsFailedAsync { add { } remove { } }
     public event Func<SubscriptionsChangedEventArgs, Task> SubscriptionsChangedAsync { add { } remove { } }
 
-    public IMqttClient InternalClient => null;
+    public IMqttClient InternalClient => null!;
     public bool IsConnected => false;
     public bool IsStarted => false;
-    public ManagedMqttClientOptions Options => null;
+    public ManagedMqttClientOptions Options => null!;
     public int PendingApplicationMessagesCount => 0;
 }
 
@@ -68,7 +68,7 @@ public class ManagedMqttClientExtensionsTests
     [TestMethod]
     public async Task EnqueueAsync_CreatesMessage_WithTopicAndPayload()
     {
-        var client = new FakeManagedMqttClient();
+        using var client = new FakeManagedMqttClient();
         await client.EnqueueAsync("test/topic", "payload", MqttQualityOfServiceLevel.AtLeastOnce, true);
 
         Assert.IsNotNull(client.LastMessage);
@@ -81,7 +81,7 @@ public class ManagedMqttClientExtensionsTests
     [TestMethod]
     public async Task SubscribeAsync_StringTopic_PassesTopicFilter()
     {
-        var client = new FakeManagedMqttClient();
+        using var client = new FakeManagedMqttClient();
         await client.SubscribeAsync("foo/bar", MqttQualityOfServiceLevel.ExactlyOnce);
 
         Assert.IsNotNull(client.LastSubscriptions);
@@ -93,7 +93,7 @@ public class ManagedMqttClientExtensionsTests
     [TestMethod]
     public async Task UnsubscribeAsync_StringTopic_PassesTopic()
     {
-        var client = new FakeManagedMqttClient();
+        using var client = new FakeManagedMqttClient();
         await client.UnsubscribeAsync("foo/bar");
 
         Assert.IsNotNull(client.LastUnsubscriptions);

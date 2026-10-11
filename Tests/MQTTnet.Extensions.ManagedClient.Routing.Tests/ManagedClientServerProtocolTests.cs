@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MQTTnet.Formatter;
 using MQTTnet.Extensions.ManagedClient.Routing.ManagedClient;
+using MQTTnet.Formatter;
 using MQTTnet.Server;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Tests;
@@ -17,13 +17,13 @@ public class ManagedClientServerProtocolTests
             .WithDefaultEndpoint()
             .WithDefaultEndpointPort(port)
             .Build();
-        var mqttServer = mqttFactory.CreateMqttServer(serverOptions);
+        using var mqttServer = mqttFactory.CreateMqttServer(serverOptions);
 
         await mqttServer.StartAsync();
 
         var clientFactory = new MqttClientFactory();
 
-        var client = clientFactory.CreateManagedMqttClient();
+        using var client = clientFactory.CreateManagedMqttClient();
         var clientOptions = new MqttClientOptionsBuilder()
             .WithTcpServer("localhost", port)
             .WithProtocolVersion(version)
@@ -55,7 +55,12 @@ public class ManagedClientServerProtocolTests
         await client.StopAsync();
         await mqttServer.StopAsync();
 
-        return completedTask == tcs.Task && tcs.Task.Result;
+        if (completedTask != tcs.Task)
+        {
+            return false;
+        }
+
+        return await tcs.Task.ConfigureAwait(false);
     }
 
     [TestMethod]

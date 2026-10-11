@@ -1,23 +1,13 @@
 // Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using System;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using MQTTnet.Extensions.ManagedClient.Routing.ManagedClient;
 using MQTTnet.Extensions.ManagedClient.Routing.Routing;
-
-// This is needed to make internal classes visible to UnitTesting projects
-[assembly: InternalsVisibleTo("MQTTnet.Extensions.ManagedClient.Routing.Tests, PublicKey=00240000048000009" +
-                              "4000000060200000024000052534131000400000100010089369e254b2bf47119265eb7514c522350b2e61beda20ccc9" +
-                              "a9ddc3f8dab153d59d23011476cc939860d9ae7d09d1bade2915961d01f9ec1f1852265e4d54b090f4c427756f7044e8" +
-                              "65ffcd47bf99f18af6361de42003808f7323d20d5d2c66fe494852b5e2438db793ec9fd845b80e1ce5c9b17ff053f386" +
-                              "bc0f06080e9d0ba")]
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
 {
@@ -49,11 +39,15 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
                 if (fromAssemblies != null && fromAssemblies.Length == 0)
                 {
                     throw new ArgumentException(
-                        "'fromAssemblies' cannot be an empty array. Pass null or a collection of 1 or more assemblies.",
-                        nameof(fromAssemblies));
+                        "'FromAssemblies' cannot be an empty array. Pass null or a collection of 1 or more assemblies.",
+                        nameof(options));
                 }
 
-                var assemblies = fromAssemblies ?? [Assembly.GetEntryAssembly()];
+                var entryAssembly = Assembly.GetEntryAssembly();
+                var assemblies = fromAssemblies ?? (entryAssembly is not null
+                    ? [entryAssembly]
+                    : throw new InvalidOperationException(
+                        "Unable to determine the entry assembly. Specify the controller assemblies explicitly via AddMqttControllers(services, assemblies)."));
 
                 return MqttRouteTableFactory.Create(assemblies);
             });
@@ -116,12 +110,12 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
 
         private static async Task HandleMqttMessage(
             MqttRouter router,
-            IRouteInvocationInterceptor interceptor,
+            IRouteInvocationInterceptor? interceptor,
             IServiceProvider serviceProvider,
             MqttApplicationMessageReceivedEventArgs args,
             bool allowUnmatchedRoutes)
         {
-            object correlationObject = null;
+            object? correlationObject = null;
             if (interceptor != null)
             {
                 correlationObject = await interceptor.RouteExecuting(args);

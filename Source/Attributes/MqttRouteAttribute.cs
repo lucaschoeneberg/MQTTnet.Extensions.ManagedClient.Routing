@@ -14,7 +14,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Attributes
     public class MqttRouteAttribute : Attribute
     {
         /// <summary>
-        /// Creates a new <see cref="RouteAttribute"/> with the given route template.
+        /// Creates a new <see cref="MqttRouteAttribute"/> with the given route template.
         /// </summary>
         /// <param name="template">The route template. May not be null.</param>
         public MqttRouteAttribute(string template)
@@ -22,20 +22,23 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Attributes
             Template = template ?? throw new ArgumentNullException(nameof(template));
         }
         /// <summary>
-        /// Creates a new <see cref="RouteAttribute"/> default route template for controller.
-        ///
+        /// Creates a new <see cref="MqttRouteAttribute"/> with the default route template.
+        /// A parameterless attribute on an action falls back to the action name;
+        /// on a controller it adds no route prefix.
         /// </summary>
-        public MqttRouteAttribute():this("/")
+        public MqttRouteAttribute() : this("/")
         {
 
         }
-        
+
         /// <summary>
         /// Gets the route template.
         /// </summary>
         public string Template { get; }
 
-        /// <inheritdoc/>
-        public string Name { get; set; }
+        /// <summary>
+        /// Gets or sets the route name. Currently informational only.
+        /// </summary>
+        public string? Name { get; set; }
     }
 }

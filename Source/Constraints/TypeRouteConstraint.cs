@@ -23,9 +23,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Constraints
             Name = name;
         }
 
-        public override bool Match(string pathSegment, out object convertedValue)
+        public override bool Match(string? pathSegment, out object? convertedValue)
         {
-            if (_parser(pathSegment, out var result))
+            if (pathSegment != null && _parser(pathSegment, out var result))
             {
                 convertedValue = result;
                 return true;

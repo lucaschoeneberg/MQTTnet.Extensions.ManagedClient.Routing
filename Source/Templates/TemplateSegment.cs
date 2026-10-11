@@ -1,8 +1,6 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved. Licensed under the Apache License, Version 2.0. See License.txt
 // in the project root for license information. // Modifications Copyright (c) Atlas Lift Tech Inc.
 
-using System;
-using System.Linq;
 using MQTTnet.Extensions.ManagedClient.Routing.Constraints;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
@@ -13,7 +11,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
         {
             IsParameter = isParameter;
 
-            IsCatchAll = segment.StartsWith("*");
+            IsCatchAll = segment.StartsWith('*');
 
             if (IsCatchAll)
             {
@@ -61,7 +59,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
                 }
 
                 // Set the IsOptional flag to true if any type constraints for this parameter are designated as optional.
-                IsOptional = tokens.Skip(1).Any(token => token.EndsWith("?"));
+                IsOptional = tokens.Skip(1).Any(token => token.EndsWith('?'));
 
                 Value = tokens[0];
                 Constraints = tokens.Skip(1)
@@ -96,9 +94,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
 
         public RouteConstraint[] Constraints { get; }
 
-        public bool Equals(TemplateSegment other)
+        public bool Equals(TemplateSegment? other)
         {
-            if (other == null) return false;
+            if (other is null) return false;
             return HaveSameProperties(other) && HaveSameConstraints(other);
         }
 
@@ -118,17 +116,17 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Templates
                 other.Constraints.Any(c => string.Equals(c.Name, constraint.Name)));
         }
 
-        public override bool Equals(object other)
+        public override bool Equals(object? other)
         {
-            return other != null && GetType() == other.GetType() && Equals((TemplateSegment)other);
+            return other is not null && GetType() == other.GetType() && Equals((TemplateSegment)other);
         }
 
         public override int GetHashCode()
         {
-            return Value.GetHashCode();
+            return HashCode.Combine(Value, IsParameter, IsOptional, IsCatchAll);
         }
 
-        public bool Match(string pathSegment, out object matchedParameterValue)
+        public bool Match(string? pathSegment, out object? matchedParameterValue)
         {
             if (IsParameter)
             {

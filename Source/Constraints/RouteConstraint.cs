@@ -3,7 +3,6 @@
 
 // Modifications Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-using System;
 using System.Collections.Concurrent;
 using System.Globalization;
 
@@ -19,7 +18,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Constraints
         private static readonly ConcurrentDictionary<string, RouteConstraint> _cachedConstraints
             = new ConcurrentDictionary<string, RouteConstraint>();
 
-        public abstract bool Match(string pathSegment, out object convertedValue);
+        public abstract bool Match(string? pathSegment, out object? convertedValue);
 
         public static RouteConstraint Parse(string template, string segment, string constraint)
         {
@@ -57,8 +56,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Constraints
         /// appropriate checks.
         /// </summary>
         /// <param name="constraint">String representation of the constraint</param>
-        /// <returns>Type-specific RouteConstraint object</returns>
-        private static RouteConstraint CreateRouteConstraint(string constraint, string name)
+        /// <param name="name">The name of the route parameter the constraint applies to.</param>
+        /// <returns>Type-specific RouteConstraint object, or null if the constraint is not supported.</returns>
+        private static RouteConstraint? CreateRouteConstraint(string constraint, string name)
         {
             switch (constraint)
             {
