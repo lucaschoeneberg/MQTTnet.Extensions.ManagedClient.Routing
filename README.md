@@ -54,6 +54,26 @@ public class TelemetryController : MqttBaseController
 }
 ```
 
+### Action signatures
+
+Actions support `void`, `Task`, `Task<T>`, `ValueTask` and `ValueTask<T>`
+return types. Returned values are awaited and then discarded; throw to mark
+processing as failed. A `CancellationToken` parameter is bound to
+`CancellationToken.None` (the MQTT dispatch pipeline is event based and has
+no ambient token):
+
+```csharp
+[MqttRoute("telemetry/{deviceId}")]
+public async Task<int> OnTelemetry(int deviceId, [FromPayload] Reading reading, CancellationToken ct)
+{
+    await _store.SaveAsync(deviceId, reading, ct);
+    return deviceId;
+}
+```
+
+A parameterless `[MqttRoute]` on an action falls back to the action name;
+on a controller it adds no route prefix.
+
 ## MIT License
 This project is released under the [MIT License](./LICENSE).
 

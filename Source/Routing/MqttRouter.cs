@@ -1,15 +1,9 @@
 ﻿// Copyright (c) Atlas Lift Tech Inc. All rights reserved.
 
-#nullable enable
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text.Json;
-using System.Threading.Tasks;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
@@ -41,17 +35,14 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 // Route not found
                 if (!allowUnmatchedRoutes)
                 {
-                    logger.LogDebug($"No route matched for topic '{context.ApplicationMessage.Topic}'");
+                    logger.LogDebug("No route matched for topic '{Topic}'", context.ApplicationMessage.Topic);
                 }
 
-                // In newer versions the application message is accepted via
-                // the AcceptPublish flag rather than the deprecated
-                // ProcessingFailed property.
                 context.ProcessingFailed = !allowUnmatchedRoutes;
             }
             else
             {
-                logger.LogDebug($"Route matched for topic '{context.ApplicationMessage.Topic}'");
+                logger.LogDebug("Route matched for topic '{Topic}'", context.ApplicationMessage.Topic);
                 using (var scope = svcProvider.CreateScope())
                 {
                     var declaringType = routeContext.Handler.DeclaringType;
@@ -74,7 +65,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                     if (activateProperties.Length == 0)
                     {
                         logger.LogDebug(
-                            $"MqttController '{declaringType.FullName}' does not have a property that can accept a controller context.  You may want to add a [{nameof(MqttControllerContextAttribute)}] to a public property.");
+                            "MqttController '{Controller}' does not have a property that can accept a controller context. You may want to add a [{ContextAttribute}] to a public property.",
+                            declaringType.FullName, nameof(MqttControllerContextAttribute));
                     }
 
                     var controllerContext = new MqttControllerContext()
@@ -88,14 +80,14 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         property.SetValue(classInstance, controllerContext);
                     }
 
-                    if (routeContext.HaveControllerParameter)
+                    if (routeContext.HaveControllerParameter && routeContext.ControllerTemplate != null)
                     {
                         var tmpx = routeContext.ControllerTemplate;
                         tmpx.Segments.Where(p => p.IsParameter).ToList().ForEach(ts =>
                         {
                             var pro = declaringType.GetRuntimeProperty(ts.Value);
                             if (pro == null) return;
-                            if (routeContext.Parameters.TryGetValue(ts.Value, out object pvalue))
+                            if (routeContext.Parameters?.TryGetValue(ts.Value, out object? pvalue) == true)
                             {
                                 pro.SetValue(classInstance, pvalue);
                             }
@@ -107,7 +99,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                     // Ensure message is marked as accepted when the route is
                     // processed successfully.
                     context.ProcessingFailed = false;
-    
+
                     if (parameters.Length == 0)
                     {
                         await HandlerInvoker(routeContext.Handler, classInstance, null).ConfigureAwait(false);
@@ -128,7 +120,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         catch (ArgumentException ex)
                         {
                             logger.LogError(ex,
-                                $"Unable to match route parameters to all arguments. See inner exception for details.");
+                                "Unable to match route parameters to all arguments. See inner exception for details.");
 
                             // Parameter matching failed; reject the message.
                             context.ProcessingFailed = true;
@@ -136,14 +128,14 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         catch (TargetInvocationException ex)
                         {
                             logger.LogError(ex.InnerException,
-                                $"Unhandled MQTT action exception. See inner exception for details.");
+                                "Unhandled MQTT action exception. See inner exception for details.");
 
                             // This is an unhandled exception from the invoked action
                             context.ProcessingFailed = true;
                         }
                         catch (Exception ex)
                         {
-                            logger.LogError(ex, "Unable to invoke Mqtt Action.  See inner exception for details.");
+                            logger.LogError(ex, "Unable to invoke Mqtt Action. See inner exception for details.");
 
                             // Unexpected error; reject the message.
                             context.ProcessingFailed = true;
@@ -153,36 +145,64 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             }
         }
 
-        private static Task HandlerInvoker(MethodInfo method, object instance, object?[]? parameters)
+        private static async Task HandlerInvoker(MethodInfo method, object instance, object?[]? parameters)
         {
             if (method.ReturnType == typeof(void))
             {
                 method.Invoke(instance, parameters);
 
-                return Task.CompletedTask;
+                return;
             }
 
-            if (method.ReturnType == typeof(Task))
+            var result = method.Invoke(instance, parameters);
+            if (result is null)
             {
-                var result = (Task?)method.Invoke(instance, parameters);
+                throw new InvalidOperationException(
+                    $"{method.DeclaringType?.FullName}.{method.Name} returned null instead of an awaitable.");
+            }
 
-                if (result == null)
+            // Task and Task<T> (Task<T> derives from Task).
+            if (result is Task task)
+            {
+                await task.ConfigureAwait(false);
+                return;
+            }
+
+            if (result is ValueTask valueTask)
+            {
+                await valueTask.ConfigureAwait(false);
+                return;
+            }
+
+            var resultType = result.GetType();
+            if (resultType.IsGenericType && resultType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+            {
+                var asTask = (Task?)resultType.GetMethod("AsTask")?.Invoke(result, null);
+                if (asTask is null)
                 {
-                    throw new NullReferenceException(
-                        $"{method.DeclaringType.FullName}.{method.Name} returned null instead of Task");
+                    throw new InvalidOperationException(
+                        $"{method.DeclaringType?.FullName}.{method.Name} returned an unawaitable ValueTask<T>.");
                 }
 
-                return result;
+                await asTask.ConfigureAwait(false);
+                return;
             }
 
             throw new InvalidOperationException(
-                $"Unsupported Action return type \"{method.ReturnType}\" on method {method.DeclaringType.FullName}.{method.Name}. Only void and {nameof(Task)} are allowed.");
+                $"Unsupported action return type \"{method.ReturnType}\" on method {method.DeclaringType?.FullName}.{method.Name}. Only void, Task, Task<T>, ValueTask and ValueTask<T> are allowed.");
         }
 
         private static object? MatchParameterOrThrow(ParameterInfo param,
-            IReadOnlyDictionary<string, object> availableParameters, MqttControllerContext controllerContext,
+            IReadOnlyDictionary<string, object?>? availableParameters, MqttControllerContext controllerContext,
             IServiceProvider serviceProvider)
         {
+            if (param.ParameterType == typeof(CancellationToken))
+            {
+                // The MQTT dispatch pipeline is event based and has no ambient
+                // cancellation token, so actions receive CancellationToken.None.
+                return CancellationToken.None;
+            }
+
             if (param.IsDefined(typeof(FromPayloadAttribute), false))
             {
                 JsonSerializerOptions? defaultOptions =
@@ -194,16 +214,16 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                 try
                 {
-                    var jsonString = System.Text.Encoding.UTF8.GetString(controllerContext.MqttContext.ApplicationMessage.Payload);
+                    var jsonString = Encoding.UTF8.GetString(controllerContext.MqttContext.ApplicationMessage.Payload);
                     return JsonSerializer.Deserialize(jsonString, param.ParameterType, defaultOptions ?? new JsonSerializerOptions());
                 }
                 catch (JsonException ex)
                 {
-                    throw new ArgumentException($"Fehler bei der Deserialisierung des Payloads zum Typ {param.ParameterType.Name}", ex);
+                    throw new ArgumentException($"Failed to deserialize the payload to type {param.ParameterType.Name}", ex);
                 }
             }
 
-            if (!availableParameters.TryGetValue(param.Name, out object? value))
+            if (availableParameters == null || param.Name == null || !availableParameters.TryGetValue(param.Name, out object? value))
             {
                 if (param.IsOptional)
                 {
@@ -222,7 +242,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             catch (Exception ex)
             {
                 throw new ArgumentException(
-                    $"Cannot assign type \"{value.GetType()}\" to parameter \"{param.ParameterType.Name} {param.Name}\"",
+                    $"Cannot assign type \"{value?.GetType().ToString() ?? "null"}\" to parameter \"{param.ParameterType.Name} {param.Name}\"",
                     param.Name, ex);
             }
 
