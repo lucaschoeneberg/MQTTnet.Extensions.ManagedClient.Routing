@@ -24,4 +24,26 @@ The test suite can be executed using the [.NET CLI](https://docs.microsoft.com/d
 dotnet test
 ```
 
+## Releasing a new version
+
+Publishing to nuget.org is automated via Trusted Publishing (OIDC, no API
+key) in `.github/workflows/publish.yml`, which runs when a GitHub Release
+is published. One-time setup (package owner only):
+
+1. nuget.org -> sign in -> username -> Trusted Publishing -> add policy
+   (owner `lucaschoeneberg`, repo
+   `MQTTnet.Extensions.ManagedClient.Routing`, workflow `publish.yml`,
+   environment `release`).
+2. Repo Settings -> Secrets and variables -> Actions -> repository secret
+   `NUGET_USER` with the nuget.org profile name (not the email).
+
+To release:
+
+1. Bump `<Version>` (+ `AssemblyVersion`/`FileVersion`) in
+   `Source/MQTTnet.Extensions.ManagedClient.Routing.csproj`.
+2. Add a `CHANGELOG.md` entry.
+3. Commit, tag `vX.Y.Z`, push tag and create the GitHub Release.
+4. The publish workflow builds, tests, verifies tag == package version
+   and pushes to nuget.org automatically (`--skip-duplicate`).
+
 

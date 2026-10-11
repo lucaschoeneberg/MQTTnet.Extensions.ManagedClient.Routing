@@ -1,0 +1,104 @@
+name: Publish NuGet
+
+# Publishes the library to nuget.org via Trusted Publishing (OIDC, no
+# long-lived API key). Runs when a GitHub Release is published, or manually.
+#
+# One-time setup (owner only):
+#   1. nuget.org -> sign in -> username -> Trusted Publishing -> add policy:
+#        Repository Owner: lucaschoeneberg
+#        Repository:       MQTTnet.Extensions.ManagedClient.Routing
+#        Workflow File:    publish.yml
+#        Environment:      release
+#   2. Repo Settings -> Secrets and variables -> Actions -> new repository
+#      secret NUGET_USER with your nuget.org profile name (NOT the email).
+#   3. Optional: repo Settings -> Environments -> release -> required
+#      reviewers, so every publish needs manual approval.
+#
+# Releasing a new version:
+#   1. Bump <Version> (+ Assembly/FileVersion) in
+#      Source/MQTTnet.Extensions.ManagedClient.Routing.csproj.
+#   2. Add a CHANGELOG.md entry.
+#   3. Commit, tag vX.Y.Z, push tag, create the GitHub Release.
+#   4. This workflow builds, tests, packs and pushes automatically.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: nuget-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # required for GitHub OIDC (NuGet trusted publishing)
+
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      NUGET_XMLDOC_MODE: skip
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10.0.x
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.nuget/packages
+            ~/.local/share/NuGet/v3-cache
+          key: ${{ runner.os }}-nuget-10.0.x-${{ hashFiles('**/*.sln', '**/*.csproj', '**/*.props', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-10.0.x-
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: >-
+          dotnet restore MQTTnet.Extensions.ManagedClient.Routing.sln
+          -p:NuGetAudit=true
+          -p:NuGetAuditMode=all
+          -p:NuGetAuditLevel=moderate
+          -warnaserror:NU1901,NU1902,NU1903,NU1904
+
+      - name: Build
+        run: dotnet build MQTTnet.Extensions.ManagedClient.Routing.sln --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test MQTTnet.Extensions.ManagedClient.Routing.sln --no-build --configuration Release
+
+      - name: Verify tag matches package version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            expected="${GITHUB_REF_NAME#v}"
+            actual=$(grep -m1 "<Version>" Source/MQTTnet.Extensions.ManagedClient.Routing.csproj | sed -E 's/.*<Version>([^<]+)<\/Version>.*/\1/')
+            if [[ "$expected" != "$actual" ]]; then
+              echo "::error::Tag $GITHUB_REF_NAME does not match csproj <Version>$actual</Version>."
+              exit 1
+            fi
+            echo "Tag and package version match: $actual"
+          else
+            echo "Manual run: skipping tag/version check."
+          fi
+
+      - name: NuGet login (OIDC -> temp API key)
+        id: login
+        uses: NuGet/login@ebc737b6fc418a6ca0073cf116ec8dc156d8b81e # v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push package
+        run: dotnet nuget push "Source/bin/Release/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
