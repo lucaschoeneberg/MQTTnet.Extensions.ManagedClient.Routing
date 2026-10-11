@@ -28,6 +28,10 @@
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditLevel>moderate</NuGetAuditLevel>
 
+    <!-- MinVer derives versions from v* git tags (explicit prefix: the
+         default does not match our tags, see publish workflow). -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+
     <!-- The vendored MQTTnet ManagedClient fork under Source/ManagedClient
          predates nullable reference types and ships without XML docs.
          It is excluded from nullability analysis (see #nullable disable
@@ -77,5 +81,7 @@
   <ItemGroup>
     <!-- Enable SourceLink for all projects (does not flow to consumers) -->
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    <!-- Versioning from git tags (does not flow to consumers) -->
+    <PackageReference Include="MinVer" PrivateAssets="All" />
   </ItemGroup>
 </Project>

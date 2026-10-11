@@ -15,11 +15,10 @@ name: Publish NuGet
 #      reviewers, so every publish needs manual approval.
 #
 # Releasing a new version:
-#   1. Bump <Version> (+ Assembly/FileVersion) in
-#      Source/MQTTnet.Extensions.ManagedClient.Routing.csproj.
-#   2. Add a CHANGELOG.md entry.
-#   3. Commit, tag vX.Y.Z, push tag, create the GitHub Release.
-#   4. This workflow builds, tests, packs and pushes automatically.
+#   1. Add a CHANGELOG.md entry (no manual version bump: MinVer derives the
+#      version from the v* git tag).
+#   2. Commit, tag vX.Y.Z, push tag, create the GitHub Release.
+#   3. This workflow builds, tests, packs and pushes automatically.
 
 on:
   release:
@@ -84,12 +83,13 @@ jobs:
           set -euo pipefail
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             expected="${GITHUB_REF_NAME#v}"
-            actual=$(grep -m1 "<Version>" Source/MQTTnet.Extensions.ManagedClient.Routing.csproj | sed -E 's/.*<Version>([^<]+)<\/Version>.*/\1/')
-            if [[ "$expected" != "$actual" ]]; then
-              echo "::error::Tag $GITHUB_REF_NAME does not match csproj <Version>$actual</Version>."
+            nupkg="Source/bin/Release/MQTTnet.Extensions.ManagedClient.Routing.${expected}.nupkg"
+            if [[ ! -f "$nupkg" ]]; then
+              echo "::error::Tag $GITHUB_REF_NAME does not match the packed version (expected $nupkg)."
+              ls Source/bin/Release/
               exit 1
             fi
-            echo "Tag and package version match: $actual"
+            echo "Tag and package version match: $expected"
           else
             echo "Manual run: skipping tag/version check."
           fi
@@ -101,4 +101,12 @@ jobs:
           user: ${{ secrets.NUGET_USER }}
 
       - name: Push package
-        run: dotnet nuget push "Source/bin/Release/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            nupkg="Source/bin/Release/MQTTnet.Extensions.ManagedClient.Routing.${GITHUB_REF_NAME#v}.nupkg"
+          else
+            nupkg=$(ls -t Source/bin/Release/*.nupkg | head -n 1)
+          fi
+          dotnet nuget push "$nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

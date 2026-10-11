@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Package and assembly versions are now derived from `v*` git tags via
+  MinVer instead of hardcoded csproj values.
+
 ## [1.2.0] - 2026-10-11
 
 ### Added

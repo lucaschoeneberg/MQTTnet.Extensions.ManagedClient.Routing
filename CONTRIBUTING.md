@@ -39,11 +39,10 @@ is published. One-time setup (package owner only):
 
 To release:
 
-1. Bump `<Version>` (+ `AssemblyVersion`/`FileVersion`) in
-   `Source/MQTTnet.Extensions.ManagedClient.Routing.csproj`.
-2. Add a `CHANGELOG.md` entry.
-3. Commit, tag `vX.Y.Z`, push tag and create the GitHub Release.
-4. The publish workflow builds, tests, verifies tag == package version
+1. Add a `CHANGELOG.md` entry (no manual version bump: the version is
+   derived from `v*` git tags via MinVer).
+2. Commit, tag `vX.Y.Z`, push tag and create the GitHub Release.
+3. The publish workflow builds, tests, verifies tag == packed version
    and pushes to nuget.org automatically (`--skip-duplicate`).
 
 
