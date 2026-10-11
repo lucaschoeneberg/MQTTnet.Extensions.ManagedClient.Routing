@@ -1,4 +1,6 @@
-[![NuGet Badge](https://buildstats.info/nuget/MQTTnet.Extensions.ManagedClient.Routing)]([https://www.nuget.org/packages/MQTTnet.Extensions.ManagedClient.Routing](https://www.nuget.org/packages/MQTTnet.Extensions.ManagedClient.Routing/))
+[![NuGet](https://img.shields.io/nuget/v/MQTTnet.Extensions.ManagedClient.Routing)](https://www.nuget.org/packages/MQTTnet.Extensions.ManagedClient.Routing/)
+[![.NET CI](https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/actions/workflows/dotnet.yml/badge.svg)](https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/actions/workflows/dotnet.yml)
+[![Security](https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/actions/workflows/security.yml/badge.svg)](https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](./LICENSE)
 
 # MQTTnet Extensions ManagedClient Routing
