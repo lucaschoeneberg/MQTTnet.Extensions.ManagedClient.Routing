@@ -1,0 +1,91 @@
+name: Security
+
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+  schedule:
+    # Wöchentlich montags: fängt neue CVEs auch ohne Push ab.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Rollout-Stand: Semgrep ist blockierend (--error, Baseline sauber),
+# Trivy und DotNet-Audit zeigen Ergebnisse direkt im Job-Log.
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trivy-fs:
+    name: Trivy FS (Vuln + Secrets)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Trivy FS scan
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          scanners: vuln,secret,license
+
+  trivy-config:
+    name: Trivy Config (Docker + IaC)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH
+
+  dotnet-audit:
+    name: .NET vulnerable packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: List vulnerable packages (transitive)
+        run: dotnet list MQTTnet.Extensions.ManagedClient.Routing.sln package --vulnerable --include-transitive
+
+  semgrep:
+    name: Semgrep OSS (SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Semgrep CE
+        run: python -m pip install --upgrade semgrep
+
+      - name: Run Semgrep scan (OSS rules, blocking)
+        # --error: Exit 1 bei Findings. Baseline ist sauber (0 Findings),
+        # neue Findings lassen den Job fehlschlagen. Ergebnisse stehen im Job-Log.
+        # (.semgrepignore blendet Artefakte aus.)
+        run: semgrep scan --config auto --error
