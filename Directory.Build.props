@@ -1,0 +1,81 @@
+<Project>
+  <PropertyGroup>
+    <!-- Targeting -->
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latestMajor</LangVersion>
+
+    <!-- Code quality -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Source defaults -->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Documentation -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Reproducibility and Source Link -->
+    <Deterministic>true</Deterministic>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- NuGet security audit -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+
+    <!-- The vendored MQTTnet ManagedClient fork under Source/ManagedClient
+         predates nullable reference types and ships without XML docs.
+         It is excluded from nullability analysis (see #nullable disable
+         in those files) and from missing-doc warnings globally. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- Stricter quality gates in CI without flagging non-critical performance analyzers -->
+  <PropertyGroup Condition="'$(CI)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+
+    <!-- Compiler warnings -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Roslyn/.NET analyzer warnings -->
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+
+    <!-- Explicitly critical warnings.
+         CA1001 is intentionally not in this hard list: the frozen vendored
+         fork (Source/ManagedClient) carries one upstream-owned CA1001
+         (ManagedMqttClientStorageManager) scoped to suggestion in
+         .editorconfig. Everywhere else CA1001 still warns and therefore
+         fails CI via TreatWarningsAsErrors. -->
+    <WarningsAsErrors>
+      $(WarningsAsErrors);
+      CS0612;
+      CS0618;
+      CS0672;
+      CS0809;
+      CS1998;
+      CS4014;
+      NU1903;
+      NU1904;
+      CA2000;
+      CA2213;
+      CA1063;
+      CA1816;
+      CA2012;
+      CA1821;
+      CA1849
+    </WarningsAsErrors>
+
+    <!-- Deliberately non-blocking guidance -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);CA1309;CA1707;CA1805;CA1822;CA1825;CA1852;CA1859;CA1860;CA1863;CA1872;CA1873</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Enable SourceLink for all projects (does not flow to consumers) -->
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

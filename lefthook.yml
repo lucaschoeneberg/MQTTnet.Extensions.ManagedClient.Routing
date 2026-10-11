@@ -1,0 +1,16 @@
+# Lefthook: schnelle lokale Gates vor CI (alles gratis, kein Server nötig).
+# Install einmalig pro Klon: lefthook install
+# Manuell: lefthook run pre-commit
+min_version: 1.11.0
+
+pre-commit:
+  # The format check and analyzer build share MSBuild intermediate files.
+  parallel: false
+  commands:
+    secrets:
+      # Fängt Secrets bereits lokal ab (CI fährt zusätzlich TruffleHog mit --only-verified).
+      run: gitleaks protect --verbose --staged --config .gitleaks.toml
+
+    csharp-format:
+      glob: "*.cs"
+      run: dotnet format --no-restore --verify-no-changes --include {staged_files}

@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "fix"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"

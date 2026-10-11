@@ -1,0 +1,18 @@
+# Gitleaks: lokale + CI-freundliche Secrets-Erkennung (gratis, OSS).
+# CI nutzt zusätzlich TruffleHog mit --only-verified (siehe .github/workflows/dotnet.yml).
+# Diese Config reduziert Fehlalarme für Beispiele, Docs und Tests.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Beispiele, Docs und Tests enthalten keine echten Secrets"
+paths = [
+  '''.*\.example.*''',
+  '''.*/Tests?/.*''',
+  '''docs/.*''',
+  '''.*\.md$''',
+]
+# Typische Platzhalter aus Doku und Tests
+regexes = [
+  '''(?i)(example|sample|placeholder|changeme|your-?-?secret|test-?-?key|fake-?-?token)''',
+]

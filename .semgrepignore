@@ -1,0 +1,6 @@
+# Semgrep OSS: Rauschen aus Build-Artefakten und Doku ausschließen.
+# (.gitignore gilt zusätzlich automatisch.)
+TestResults
+coverage
+*.nupkg
+*.snupkg
