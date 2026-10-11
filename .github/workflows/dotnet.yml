@@ -73,11 +73,15 @@ jobs:
         run: dotnet build MQTTnet.Extensions.ManagedClient.Routing.sln --no-restore --configuration Release
 
       - name: Test (with coverage)
+        # Coverlet MSBuild integration (not --collect): only this mode
+        # enforces the Threshold gate from the test csproj.
         run: |
           dotnet test MQTTnet.Extensions.ManagedClient.Routing.sln --no-build --configuration Release \
             --logger "trx" \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./TestResults
+            --results-directory ./TestResults \
+            -p:CollectCoverage=true \
+            -p:CoverletOutputFormat=cobertura \
+            "-p:CoverletOutput=$PWD/TestResults/coverage"
 
       - name: Generate Coverage Summary
         uses: irongut/CodeCoverageSummary@51cc3a756ddcd398d447c044c02cb6aa83fdae95 # v1.3.0
