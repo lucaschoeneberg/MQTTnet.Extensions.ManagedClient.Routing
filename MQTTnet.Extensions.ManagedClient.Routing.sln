@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MQTTnet.Extensions.ManagedC
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MQTTnet.Extensions.ManagedClient.Routing.Tests", "Tests\MQTTnet.Extensions.ManagedClient.Routing.Tests\MQTTnet.Extensions.ManagedClient.Routing.Tests.csproj", "{2CCF4E69-E59E-470B-866D-156099731473}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MqttRoutingSample", "Samples\MqttRoutingSample\MqttRoutingSample.csproj", "{C4790EED-99F1-4ACF-9E78-4F9E9EF6F635}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{2CCF4E69-E59E-470B-866D-156099731473}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2CCF4E69-E59E-470B-866D-156099731473}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2CCF4E69-E59E-470B-866D-156099731473}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4790EED-99F1-4ACF-9E78-4F9E9EF6F635}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4790EED-99F1-4ACF-9E78-4F9E9EF6F635}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4790EED-99F1-4ACF-9E78-4F9E9EF6F635}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4790EED-99F1-4ACF-9E78-4F9E9EF6F635}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

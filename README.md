@@ -19,6 +19,14 @@ MQTTnet.Extensions.ManagedClient.Routing extends MQTTnet's `ManagedMqttClient` w
 dotnet add package MQTTnet.Extensions.ManagedClient.Routing
 ```
 
+## Quickstart
+
+A runnable end-to-end example lives in [`Samples/MqttRoutingSample`](Samples/MqttRoutingSample). It starts an in-process broker, routes two messages through a controller and exits:
+
+```bash
+dotnet run --project Samples/MqttRoutingSample
+```
+
 ## Usage
 
 Register your MQTT controllers in the DI container and enable routing:
@@ -26,43 +34,55 @@ Register your MQTT controllers in the DI container and enable routing:
 ```csharp
 builder.Services.AddMqttControllers();
 
-app.UseAttributeRouting(); // or managedClient.WithAttributeRouting(app.Services);
+app.UseAttributeRouting(); // or ((ManagedMqttClient)managedClient).WithAttributeRouting(app.Services);
 ```
 
-To execute code before and after each controller action you can register an
-`IRouteInvocationInterceptor`. Implement the interface and hook it up when
-adding the controllers:
+`AddMqttControllers` scans an assembly for controllers. By default the entry
+assembly is used; pass assemblies explicitly (e.g. from tests or libraries):
 
 ```csharp
-builder.Services.AddMqttControllers(opt =>
-    opt.WithRouteInvocationInterceptor<MyInterceptor>());
+builder.Services.AddMqttControllers([typeof(TelemetryController).Assembly]);
 ```
-
-`RouteExecuting` is called before the handler runs and `RouteExecuted` afterwards.
-See the [architecture overview](docs/architecture.md#extension-points) for
-details.
 
 ### Example controller
 
 ```csharp
 public class TelemetryController : MqttBaseController
 {
-    [MqttRoute("telemetry/temperature")]
-    public Task OnTemperature(string payload)
+    [MqttRoute("telemetry/{deviceId:int}")]
+    public async Task OnTemperature(int deviceId, [FromPayload] Reading reading)
     {
-        Console.WriteLine($"Temp: {payload}");
-        return Ok();
+        Console.WriteLine($"Device {deviceId}: {reading.Celsius} °C");
+        await Ok();
     }
 }
 ```
+
+### Routes
+
+A route template is a `/`-separated topic pattern. Literals match
+case-insensitively, `{name}` captures a segment, `{name:type}` validates and
+converts it, `{name?}` / `{name:type?}` are optional, `{*rest}` catches all
+remaining segments. Supported constraints: `bool`, `datetime`, `decimal`,
+`double`, `float`, `guid`, `int`, `long` (each optionally nullable with `?`).
+
+`[controller]` and `[action]` tokens are replaced with the controller (minus
+`Controller` suffix) and action names; escape them with double brackets
+(`[[controller]]`). A parameterless `[MqttRoute]` on an action falls back to
+the action name; on a controller it adds no route prefix.
 
 ### Action signatures
 
 Actions support `void`, `Task`, `Task<T>`, `ValueTask` and `ValueTask<T>`
 return types. Returned values are awaited and then discarded; throw to mark
-processing as failed. A `CancellationToken` parameter is bound to
-`CancellationToken.None` (the MQTT dispatch pipeline is event based and has
-no ambient token):
+processing as failed. Parameters are bound from route values, from the JSON
+payload via `[FromPayload]`, or from DI context:
+
+- `CancellationToken` is bound to `CancellationToken.None` (the MQTT dispatch
+  pipeline is event based and has no ambient token).
+- The current message is available via `MqttBaseController.Message` /
+  `MqttContext`, or a `[MqttControllerContext]` property on custom
+  controllers.
 
 ```csharp
 [MqttRoute("telemetry/{deviceId}")]
@@ -73,8 +93,36 @@ public async Task<int> OnTelemetry(int deviceId, [FromPayload] Reading reading, 
 }
 ```
 
-A parameterless `[MqttRoute]` on an action falls back to the action name;
-on a controller it adds no route prefix.
+### Interceptors
+
+To execute code before and after each controller action, implement
+`IRouteInvocationInterceptor` and hook it up when adding the controllers:
+
+```csharp
+builder.Services.AddMqttControllers(opt =>
+    opt.WithRouteInvocationInterceptor<MyInterceptor>());
+```
+
+`RouteExecuting` is called before the handler runs and `RouteExecuted`
+afterwards (with the correlation object and any exception). See the
+[architecture overview](docs/architecture.md#extension-points) for details.
+
+### Configuration
+
+`MqttRoutingOptions` (registered as singleton by `AddMqttControllers`):
+
+- `SerializerOptions`: JSON options for `[FromPayload]` deserialization
+  (defaults to web defaults with full Unicode support; override via
+  `opt.WithJsonSerializerOptions(...)`).
+- `FromAssemblies`: assemblies scanned for controllers (set via the
+  `AddMqttControllers` overloads).
+- `RouteInvocationInterceptor`: interceptor type (set via
+  `WithRouteInvocationInterceptor<T>()`).
+
+## Versioning
+
+Versions follow [Semantic Versioning](https://semver.org/) and are derived
+from `v*` git tags via MinVer. See [CHANGELOG.md](CHANGELOG.md).
 
 ## MIT License
 This project is released under the [MIT License](./LICENSE).

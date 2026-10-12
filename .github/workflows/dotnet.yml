@@ -94,3 +94,7 @@ jobs:
 
       - name: Publish Coverage Summary
         run: cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Run sample (smoke test)
+        timeout-minutes: 5
+        run: dotnet run --project Samples/MqttRoutingSample --no-build --configuration Release
