@@ -17,6 +17,10 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         private readonly ITypeActivatorCache typeActivator;
         private readonly MqttRoutingOptions? options;
         private readonly SemaphoreSlim dispatchGate;
+        private readonly object dispatchLock = new();
+        private int pendingDispatches;
+        private bool disposed;
+        private Task acknowledgementTail = Task.CompletedTask;
 
         public MqttRouter(ILogger<MqttRouter> logger, MqttRouteTable routeTable, ITypeActivatorCache typeActivator,
             MqttRoutingOptions? options = null)
@@ -30,11 +34,124 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
         public void Dispose()
         {
-            dispatchGate.Dispose();
+            lock (dispatchLock)
+            {
+                disposed = true;
+                if (pendingDispatches == 0)
+                {
+                    dispatchGate.Dispose();
+                }
+            }
+
             GC.SuppressFinalize(this);
         }
 
         internal async Task OnIncomingApplicationMessage(IServiceProvider svcProvider,
+            MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes,
+            IRouteInvocationInterceptor? interceptor = null, bool dispatchInBackground = false)
+        {
+            lock (dispatchLock)
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                pendingDispatches++;
+            }
+
+            await dispatchGate.WaitAsync().ConfigureAwait(false);
+
+            if (dispatchInBackground && (options?.MaxConcurrentDispatches ?? 1) > 1)
+            {
+                // MQTTnet serializes receive callbacks. Take ownership of automatic
+                // acknowledgement before returning so independent messages can overlap.
+                var acknowledge = context.AutoAcknowledge;
+                context.AutoAcknowledge = false;
+                Task previousAcknowledgement;
+                var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                lock (dispatchLock)
+                {
+                    previousAcknowledgement = acknowledgementTail;
+                    acknowledgementTail = completion.Task;
+                }
+
+                _ = Task.Run(() => DispatchMessageAsync(svcProvider, context,
+                    allowUnmatchedRoutes, interceptor, acknowledge, previousAcknowledgement, completion));
+                return;
+            }
+
+            await DispatchMessageAsync(svcProvider, context, allowUnmatchedRoutes,
+                interceptor, acknowledge: false).ConfigureAwait(false);
+        }
+
+        private async Task DispatchMessageAsync(IServiceProvider svcProvider,
+            MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes,
+            IRouteInvocationInterceptor? interceptor, bool acknowledge,
+            Task? previousAcknowledgement = null, TaskCompletionSource? completion = null)
+        {
+            try
+            {
+                object? correlationObject = null;
+                Exception? failure;
+                try
+                {
+                    if (interceptor != null)
+                    {
+                        correlationObject = await interceptor.RouteExecuting(context).ConfigureAwait(false);
+                    }
+
+                    failure = await RouteMessageAsync(svcProvider, context, allowUnmatchedRoutes).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    context.ProcessingFailed = true;
+                    failure = ex;
+                    logger.LogError(ex, "Unable to dispatch MQTT message.");
+                }
+
+                if (interceptor != null)
+                {
+                    try
+                    {
+                        await interceptor.RouteExecuted(correlationObject, context, failure).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        context.ProcessingFailed = true;
+                        logger.LogError(ex, "RouteExecuted interceptor failed.");
+                    }
+                }
+
+                if (previousAcknowledgement != null)
+                {
+                    // MQTT requires PUBACK/PUBREC to follow receive order even
+                    // when independent controller actions finish out of order.
+                    await previousAcknowledgement.ConfigureAwait(false);
+                }
+
+                if (acknowledge && !context.ProcessingFailed)
+                {
+                    await context.AcknowledgeAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                context.ProcessingFailed = true;
+                logger.LogError(ex, "Unable to acknowledge MQTT message.");
+            }
+            finally
+            {
+                completion?.TrySetResult();
+                lock (dispatchLock)
+                {
+                    dispatchGate.Release();
+                    pendingDispatches--;
+                    if (disposed && pendingDispatches == 0)
+                    {
+                        dispatchGate.Dispose();
+                    }
+                }
+            }
+        }
+
+        private async Task<Exception?> RouteMessageAsync(IServiceProvider svcProvider,
             MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes)
         {
             var topic = context.ApplicationMessage?.Topic;
@@ -42,7 +159,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             {
                 logger.LogWarning("Received message without topic; marking as failed.");
                 context.ProcessingFailed = true;
-                return;
+                return null;
             }
 
             var routeContext = new MqttRouteContext(topic);
@@ -58,40 +175,15 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 }
 
                 context.ProcessingFailed = !allowUnmatchedRoutes;
-                return;
+                return null;
             }
 
             logger.LogDebug("Route matched for topic '{Topic}'", topic);
 
-            if ((options?.MaxConcurrentDispatches ?? 1) < 2)
-            {
-                // Sequential dispatch preserves message order and MQTT
-                // acknowledgement semantics.
-                await DispatchCoreAsync(svcProvider, context, routeContext).ConfigureAwait(false);
-                return;
-            }
-
-            // Bounded parallel dispatch: the MQTT pipeline continues reading
-            // while this message is processed in the background. Ordering is
-            // no longer guaranteed; use only for independent messages.
-            await dispatchGate.WaitAsync().ConfigureAwait(false);
-            _ = DispatchInBackgroundAsync(svcProvider, context, routeContext);
+            return await DispatchCoreAsync(svcProvider, context, routeContext).ConfigureAwait(false);
         }
 
-        private async Task DispatchInBackgroundAsync(IServiceProvider svcProvider,
-            MqttApplicationMessageReceivedEventArgs context, MqttRouteContext routeContext)
-        {
-            try
-            {
-                await DispatchCoreAsync(svcProvider, context, routeContext).ConfigureAwait(false);
-            }
-            finally
-            {
-                dispatchGate.Release();
-            }
-        }
-
-        private async Task DispatchCoreAsync(IServiceProvider svcProvider,
+        private async Task<Exception?> DispatchCoreAsync(IServiceProvider svcProvider,
             MqttApplicationMessageReceivedEventArgs context, MqttRouteContext routeContext)
         {
             // Ensure message is marked as accepted when the route is
@@ -160,7 +252,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                     if (parameters.Length == 0)
                     {
-                        await HandlerInvoker(routeContext.Handler, classInstance, null, actionToken).ConfigureAwait(false);
+                        await InvokeActionAsync(routeContext.Handler, classInstance, null, context, actionToken).ConfigureAwait(false);
                     }
                     else
                     {
@@ -169,7 +261,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                             )
                             .ToArray();
 
-                        await HandlerInvoker(routeContext.Handler, classInstance, paramArray, actionToken).ConfigureAwait(false);
+                        await InvokeActionAsync(routeContext.Handler, classInstance, paramArray, context, actionToken).ConfigureAwait(false);
                     }
                 }
             }
@@ -179,6 +271,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                     "MQTT action exceeded the configured execution time. See inner exception for details.");
 
                 context.ProcessingFailed = true;
+                return ex;
             }
             catch (ArgumentException ex)
             {
@@ -187,6 +280,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                 // Parameter matching failed; reject the message.
                 context.ProcessingFailed = true;
+                return ex;
             }
             catch (TargetInvocationException ex)
             {
@@ -195,6 +289,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                 // This is an unhandled exception from the invoked action
                 context.ProcessingFailed = true;
+                return ex;
             }
             catch (Exception ex)
             {
@@ -203,11 +298,48 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 logger.LogError(ex, "Unable to invoke Mqtt Action. See inner exception for details.");
 
                 context.ProcessingFailed = true;
+                return ex;
+            }
+
+            return null;
+        }
+
+        private async Task InvokeActionAsync(MethodInfo method, object instance, object?[]? parameters,
+            MqttApplicationMessageReceivedEventArgs context, CancellationToken actionToken)
+        {
+            if (!actionToken.CanBeCanceled)
+            {
+                await HandlerInvoker(method, instance, parameters).ConfigureAwait(false);
+                return;
+            }
+
+            // Include synchronous invocation and the synchronous prefix of async
+            // methods in the deadline, without blocking the receive callback.
+            var invocation = Task.Run(() => HandlerInvoker(method, instance, parameters));
+            try
+            {
+                await invocation.WaitAsync(actionToken).ConfigureAwait(false);
+                actionToken.ThrowIfCancellationRequested();
+            }
+            catch (OperationCanceledException) when (actionToken.IsCancellationRequested)
+            {
+                context.ProcessingFailed = true;
+                // Cancellation cannot stop arbitrary user code. Keep its scope and
+                // dispatch slot alive, and observe any late exception before returning.
+                try
+                {
+                    await invocation.ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "MQTT action terminated after its execution deadline.");
+                }
+
+                throw new TimeoutException("MQTT action exceeded the configured execution time.");
             }
         }
 
-        private static async Task HandlerInvoker(MethodInfo method, object instance, object?[]? parameters,
-            CancellationToken cancellationToken)
+        private static async Task HandlerInvoker(MethodInfo method, object instance, object?[]? parameters)
         {
             if (method.ReturnType == typeof(void))
             {
@@ -226,13 +358,13 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             // Task and Task<T> (Task<T> derives from Task).
             if (result is Task task)
             {
-                await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                await task.ConfigureAwait(false);
                 return;
             }
 
             if (result is ValueTask valueTask)
             {
-                await valueTask.AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
+                await valueTask.ConfigureAwait(false);
                 return;
             }
 
@@ -246,7 +378,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         $"{method.DeclaringType?.FullName}.{method.Name} returned an unawaitable ValueTask<T>.");
                 }
 
-                await asTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                await asTask.ConfigureAwait(false);
                 return;
             }
 

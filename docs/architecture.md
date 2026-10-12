@@ -12,7 +12,13 @@ This project adds ASP.NET‑style routing on top of MQTTnet's managed client. Co
 
 Supported action return types are `void`, `Task`, `Task<T>`, `ValueTask` and `ValueTask<T>`. Results are awaited and discarded; exceptions mark the message as failed (`ProcessingFailed = true`).
 
-Parameters are bound in order: `CancellationToken` receives `CancellationToken.None`, `[FromPayload]` parameters are JSON-deserialized with the configured `MqttRoutingOptions.SerializerOptions`, and everything else is matched against route values (with invariant-culture conversion as fallback).
+Parameters are bound in order: `CancellationToken` receives the configured action deadline token (or `CancellationToken.None` without a deadline), `[FromPayload]` parameters are JSON-deserialized with the configured `MqttRoutingOptions.SerializerOptions`, and everything else is matched against route values (with invariant-culture conversion as fallback).
+
+The singleton router owns a semaphore shared by its receive callbacks. Direct dispatch calls await processing. For MQTTnet's serialized receive pipeline, an opt-in parallel callback first reserves a slot and disables automatic acknowledgement, then processes the action and both interceptor hooks in the background. It acknowledges only after successful completion, in receive order as required by [MQTT 3.1.1 §4.6](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html). Pre-existing manual acknowledgement ownership is preserved.
+
+With `MaxActionExecutionTime`, invocation runs on a worker so the deadline also covers `void` actions and synchronous prefixes of async actions. At the deadline the message fails and the token is canceled. The router drains the underlying invocation before disposing its scope or releasing its slot; arbitrary .NET code cannot be forcibly stopped safely. Late exceptions are observed, and `RouteExecuted` receives the timeout after the action terminates. Cooperative actions should pass the token to their asynchronous operations.
+
+The managed client also tracks and drains its outbound publishing worker before replacing it or disposing storage. Successful publishes finish queue and storage cleanup even if shutdown canceled the worker. Reconnect delays grow to the configured cap without a fixed exponent limit, and each new session resets the consecutive-failure count.
 
 ## Key Classes
 

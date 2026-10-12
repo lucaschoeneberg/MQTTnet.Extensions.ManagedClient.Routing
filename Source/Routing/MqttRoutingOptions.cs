@@ -10,16 +10,21 @@ public class MqttRoutingOptions
     public Type? RouteInvocationInterceptor { get; internal set; }
 
     /// <summary>
-    /// Maximum time a controller action may run. When set, actions receive a
-    /// cancellable token and overruns mark the message as failed instead of
-    /// blocking dispatch forever. Null (default) means no limit.
+    /// Execution deadline for a controller action, including synchronous work.
+    /// Must be positive and at most 4,294,967,294 milliseconds (the .NET timer
+    /// maximum) when set; null (default) disables the deadline. Actions
+    /// receive a token canceled at the deadline and the message is marked failed.
+    /// Cancellation is cooperative: the scope and concurrency slot are retained
+    /// until the action actually terminates, even if it ignores the token.
     /// </summary>
     public TimeSpan? MaxActionExecutionTime { get; internal set; }
 
     /// <summary>
     /// Maximum number of messages dispatched concurrently. 1 (default)
-    /// preserves message order and acknowledgement semantics; higher values
-    /// trade ordering for throughput (independent messages only).
+    /// preserves message order; higher values allow independent messages to
+    /// overlap while routing keeps acknowledgements in receive order. Must be
+    /// at least 1. Routing acknowledges successful messages only after the action and interceptor
+    /// finish, unless automatic acknowledgement was already disabled by the caller.
     /// </summary>
     public int MaxConcurrentDispatches { get; internal set; } = 1;
 }

@@ -78,8 +78,8 @@ return types. Returned values are awaited and then discarded; throw to mark
 processing as failed. Parameters are bound from route values, from the JSON
 payload via `[FromPayload]`, or from DI context:
 
-- `CancellationToken` is bound to `CancellationToken.None` (the MQTT dispatch
-  pipeline is event based and has no ambient token).
+- `CancellationToken` is bound to a deadline token when
+  `MaxActionExecutionTime` is configured, otherwise `CancellationToken.None`.
 - The current message is available via `MqttBaseController.Message` /
   `MqttContext`, or a `[MqttControllerContext]` property on custom
   controllers.
@@ -119,6 +119,21 @@ Bound the blast radius of slow actions with
 `opt.WithMaxActionExecutionTime(...)` and, for independent messages only,
 raise `opt.WithMaxConcurrentDispatches(...)` (default 1, ordered).
 
+The deadline also covers synchronous actions and synchronous work before an
+async action returns its task. On expiry the message is marked failed and
+the action token is canceled. Cancellation is cooperative: routing retains
+the DI scope and concurrency slot until the action actually terminates.
+An action that ignores cancellation can therefore hold a slot indefinitely.
+
+In parallel mode routing disables MQTTnet's automatic acknowledgement and
+acknowledges successful messages after the action and `RouteExecuted` finish,
+in receive order as required by MQTT.
+Failed QoS 1/2 deliveries remain unacknowledged; broker redelivery depends on
+the MQTT session. If automatic acknowledgement was already disabled before
+routing, the caller retains responsibility for acknowledging the message.
+Other receive handlers must not acknowledge a routed message prematurely or
+modify its processing result after handing it to background routing.
+
 ### Configuration
 
 `MqttRoutingOptions` (registered as singleton by `AddMqttControllers`):
@@ -130,6 +145,24 @@ raise `opt.WithMaxConcurrentDispatches(...)` (default 1, ordered).
   `AddMqttControllers` overloads).
 - `RouteInvocationInterceptor`: interceptor type (set via
   `WithRouteInvocationInterceptor<T>()`).
+- `MaxActionExecutionTime`: optional positive action deadline (default
+  `null`), up to the .NET timer maximum of 4,294,967,294 milliseconds;
+  set via `WithMaxActionExecutionTime`. Invalid values throw
+  `InvalidOperationException` during `AddMqttControllers`.
+- `MaxConcurrentDispatches`: maximum active dispatches, including timed-out
+  actions still running (default `1`, minimum `1`); set via
+  `WithMaxConcurrentDispatches`. Invalid values throw
+  `InvalidOperationException` during `AddMqttControllers`.
+
+Managed client reconnects grow exponentially with equal jitter (50–100% of
+the capped delay), with a one-second floor. `MaxReconnectDelay` defaults to
+two minutes and must be between one second and the .NET timer maximum of
+4,294,967,294 milliseconds; values outside this range throw
+`ArgumentException` during `StartAsync`. Even very small base delays
+eventually reach this cap. Every new `StartAsync` resets the failure count.
+`StopAsync` waits for the publishing worker, including interceptors and
+storage writes, before releasing storage; these operations must complete
+for shutdown to finish.
 
 ## Versioning
 

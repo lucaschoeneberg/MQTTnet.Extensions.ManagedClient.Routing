@@ -91,4 +91,13 @@ public class ServiceCollectionExtensionsTests
         Assert.ThrowsExactly<InvalidOperationException>(() =>
             services.AddMqttControllers(opt => opt.WithMaxActionExecutionTime(TimeSpan.Zero)));
     }
+
+    [TestMethod]
+    public void AddMqttControllers_TimeoutAboveTimerRange_Throws()
+    {
+        var services = new ServiceCollection();
+
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            services.AddMqttControllers(opt => opt.WithMaxActionExecutionTime(TimeSpan.FromDays(50))));
+    }
 }

@@ -18,8 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ManagedMqttClientOptions.MaxReconnectDelay`: reconnect delay now grows
   exponentially with jitter (fleet-safe) instead of hammering at a fixed
   interval.
-- `MqttRoutingOptions.MaxActionExecutionTime`: actions can be time-boxed;
-  overruns fail the message instead of stalling dispatch.
+- `MqttRoutingOptions.MaxActionExecutionTime`: cooperative deadlines cover
+  synchronous and asynchronous actions; overruns fail the message while
+  retaining its scope and dispatch slot until the action terminates.
 - `MqttRoutingOptions.MaxConcurrentDispatches`: opt-in bounded parallel
   dispatch for independent messages (default 1, ordered).
 - `ManagedMqttClientStorageManager` is now disposable.
@@ -32,6 +33,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unbounded, bounding offline memory usage.
 - Handler, binding and interceptor failures no longer propagate into the
   MQTT dispatch loop; messages are marked failed and logged instead.
+
+### Fixed
+
+- Parallel routing defers acknowledgement until the action and interceptor
+  finish, and reports action failures to the interceptor.
+- Timed-out actions retain their DI scope and concurrency slot; synchronous
+  invocations are included in the deadline and late exceptions are observed.
+- Publishing workers are drained before storage disposal and complete
+  post-publish storage cleanup during shutdown.
+- Reconnect backoff grows to the configured maximum even for tiny base
+  delays, and resets when starting a new managed session.
 
 ## [1.2.0] - 2026-10-11
 

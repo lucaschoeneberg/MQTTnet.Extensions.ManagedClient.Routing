@@ -45,8 +45,15 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 
         Task PingAsync(CancellationToken cancellationToken = default);
 
+        /// <summary>Starts a new managed session and resets its reconnect backoff.</summary>
+        /// <param name="options">Client options with MaxReconnectDelay between one second and the supported timer maximum (4,294,967,294 milliseconds).</param>
+        /// <exception cref="ArgumentException">Client options are missing or MaxReconnectDelay is outside its supported range.</exception>
+        /// <exception cref="InvalidOperationException">The client is already started.</exception>
         Task StartAsync(ManagedMqttClientOptions options);
 
+        /// <summary>Stops the session and drains the publishing worker before releasing its storage.</summary>
+        /// <param name="cleanDisconnect">Whether to send a clean disconnect to the broker.</param>
+        /// <remarks>Completion waits for in-flight publishing interceptors and storage writes. These must eventually complete.</remarks>
         Task StopAsync(bool cleanDisconnect = true);
 
         Task SubscribeAsync(IEnumerable<MqttTopicFilter> topicFilters);

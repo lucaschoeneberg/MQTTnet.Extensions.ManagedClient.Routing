@@ -65,6 +65,19 @@ public class ManagedClientStabilityTests
     }
 
     [TestMethod]
+    [DataRow(1, 20)]
+    [DataRow(0, 20)]
+    [DataRow(1, int.MaxValue)]
+    public void ComputeReconnectDelay_SmallBaseEventuallyReachesConfiguredCap(int baseMilliseconds, int failures)
+    {
+        var delay = ManagedMqttClient.ComputeReconnectDelay(
+            TimeSpan.FromMilliseconds(baseMilliseconds), TimeSpan.FromMinutes(2), failures);
+
+        Assert.IsTrue(delay >= TimeSpan.FromMinutes(1));
+        Assert.IsTrue(delay <= TimeSpan.FromMinutes(2));
+    }
+
+    [TestMethod]
     public async Task LoadQueuedMessages_ReturnsCopy()
     {
         var stored = new List<ManagedMqttApplicationMessage> { new() };

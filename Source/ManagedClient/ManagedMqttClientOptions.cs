@@ -20,6 +20,11 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
         /// Upper bound for the reconnect delay. The actual delay grows
         /// exponentially from <see cref="AutoReconnectDelay"/> with the number
         /// of consecutive failures (plus jitter) and never exceeds this value.
+        /// Defaults to two minutes; must be at least one second, matching the
+        /// reconnect delay floor, and at most 4,294,967,294 milliseconds (the .NET
+        /// timer maximum). StartAsync rejects values outside this range. A new
+        /// StartAsync session resets the failure count. Zero or negative base
+        /// delays are treated as one millisecond before applying the floor.
         /// </summary>
         public TimeSpan MaxReconnectDelay { get; set; } = TimeSpan.FromMinutes(2);
 

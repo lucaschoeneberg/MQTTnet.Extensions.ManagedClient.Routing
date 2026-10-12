@@ -34,9 +34,9 @@ public sealed class SlowController : MqttBaseController
     public static int Calls { get; set; }
 
     [MqttRoute("slow")]
-    public async Task Slow()
+    public async Task Slow(CancellationToken cancellationToken)
     {
-        await Task.Delay(5000);
+        await Task.Delay(5000, cancellationToken);
         Calls++;
     }
 
@@ -56,7 +56,8 @@ public sealed class SlowController : MqttBaseController
 [MqttRoute("conc")]
 public sealed class ConcurrencyController : MqttBaseController
 {
-    public static int Calls { get; private set; }
+    public static int Calls => calls;
+    private static int calls;
     public static int MaxObserved => maxObserved;
 
     private static int current;
@@ -77,7 +78,7 @@ public sealed class ConcurrencyController : MqttBaseController
                 Interlocked.CompareExchange(ref maxObserved, snapshot, observed) != observed);
 
             await Task.Delay(200);
-            Calls++;
+            Interlocked.Increment(ref calls);
         }
         finally
         {
@@ -87,7 +88,7 @@ public sealed class ConcurrencyController : MqttBaseController
 
     public static void Reset()
     {
-        Calls = 0;
+        calls = 0;
         current = 0;
         maxObserved = 0;
     }
@@ -184,13 +185,6 @@ public class MqttRouterStabilityTests
             router.OnIncomingApplicationMessage(sp, CreateArgs("conc/work"), false),
             router.OnIncomingApplicationMessage(sp, CreateArgs("conc/work"), false));
 
-        // Background dispatch: wait for all four actions to finish.
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        while (ConcurrencyController.Calls < 4)
-        {
-            await Task.Delay(20, cts.Token);
-        }
-
         sw.Stop();
 
         Assert.AreEqual(4, ConcurrencyController.Calls);
@@ -227,7 +221,7 @@ public class MqttRouterStabilityTests
         var (sp, router) = CreateRouter(typeof(SlowController).GetMethod("Fast")!);
         var args = CreateArgs("stab/fast");
 
-        await ServiceCollectionExtensions.HandleMqttMessage(router, new ThrowingInterceptor(), sp, args, false);
+        await router.OnIncomingApplicationMessage(sp, args, false, new ThrowingInterceptor());
 
         Assert.IsTrue(args.ProcessingFailed);
     }
@@ -239,8 +233,8 @@ public class MqttRouterStabilityTests
         var (sp, router) = CreateRouter(typeof(SlowController).GetMethod("Fast")!);
         var args = CreateArgs("stab/fast");
 
-        await ServiceCollectionExtensions.HandleMqttMessage(
-            router, new ThrowingInterceptor(throwOnExecuting: false, throwOnExecuted: true), sp, args, false);
+        await router.OnIncomingApplicationMessage(
+            sp, args, false, new ThrowingInterceptor(throwOnExecuting: false, throwOnExecuted: true));
 
         Assert.AreEqual(1, SlowController.Calls);
     }

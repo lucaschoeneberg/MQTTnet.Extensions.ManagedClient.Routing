@@ -63,6 +63,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 
         CancellationTokenSource _connectionCancellationToken;
         Task _maintainConnectionTask;
+        Task _publishingTask;
         CancellationTokenSource _publishingCancellationToken;
 
         int _reconnectFailureCount;
@@ -222,6 +223,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
             return InternalClient.PingAsync(cancellationToken);
         }
 
+        /// <inheritdoc />
         public async Task StartAsync(ManagedMqttClientOptions options)
         {
             ThrowIfDisposed();
@@ -238,6 +240,13 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 throw new InvalidOperationException("The managed client is already started.");
             }
 
+            if (options.MaxReconnectDelay < TimeSpan.FromSeconds(1) ||
+                options.MaxReconnectDelay.TotalMilliseconds > uint.MaxValue - 1)
+            {
+                throw new ArgumentException("MaxReconnectDelay must be at least one second and within the supported timer range.", nameof(options));
+            }
+
+            _reconnectFailureCount = 0;
             Options = options;
 
             if (options.Storage != null)
@@ -261,16 +270,15 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
             _logger.Info("Started");
         }
 
+        /// <inheritdoc />
         public async Task StopAsync(bool cleanDisconnect = true)
         {
             ThrowIfDisposed();
 
             _isCleanDisconnect = cleanDisconnect;
 
-            StopPublishing();
+            CancelPublishing();
             StopMaintainingConnection();
-
-            _messageQueue.Clear();
 
             if (_maintainConnectionTask != null)
             {
@@ -278,8 +286,13 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 _maintainConnectionTask = null;
             }
 
-            _storageManager?.Dispose();
-            _storageManager = null;
+            await StopPublishingAsync().ConfigureAwait(false);
+            using (await _messageQueueLock.EnterAsync().ConfigureAwait(false))
+            {
+                _messageQueue.Clear();
+                _storageManager?.Dispose();
+                _storageManager = null;
+            }
         }
 
         public Task SubscribeAsync(IEnumerable<MqttTopicFilter> topicFilters)
@@ -331,7 +344,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
         {
             if (disposing)
             {
-                StopPublishing();
+                CancelPublishing();
                 StopMaintainingConnection();
 
                 if (_maintainConnectionTask != null)
@@ -339,6 +352,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                     _maintainConnectionTask.GetAwaiter().GetResult();
                     _maintainConnectionTask = null;
                 }
+
+                StopPublishingAsync().GetAwaiter().GetResult();
 
                 _messageQueue.Dispose();
                 _messageQueueLock.Dispose();
@@ -365,7 +380,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
         /// </summary>
         internal static TimeSpan ComputeReconnectDelay(TimeSpan baseDelay, TimeSpan maxDelay, int consecutiveFailures)
         {
-            var exponential = baseDelay.TotalMilliseconds * Math.Pow(2, Math.Max(0, Math.Min(consecutiveFailures, 10)));
+            var exponential = Math.ScaleB(Math.Max(baseDelay.TotalMilliseconds, 1), Math.Max(0, consecutiveFailures));
             var capped = Math.Min(exponential, Math.Max(maxDelay.TotalMilliseconds, 0));
             var jittered = capped * (0.5 + Random.Shared.NextDouble() * 0.5);
             return TimeSpan.FromMilliseconds(Math.Max(jittered, TimeSpan.FromSeconds(1).TotalMilliseconds));
@@ -665,15 +680,16 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
             return new SendSubscribeUnsubscribeResult(subscribeResults, unsubscribeResults);
         }
 
-        void StartPublishing()
+        async Task StartPublishingAsync()
         {
-            StopPublishing();
+            await StopPublishingAsync().ConfigureAwait(false);
 
             var cancellationTokenSource = new CancellationTokenSource();
             var cancellationToken = cancellationTokenSource.Token;
             _publishingCancellationToken = cancellationTokenSource;
 
-            Task.Run(() => PublishQueuedMessagesAsync(cancellationToken), cancellationToken).RunInBackground(_logger);
+            _publishingTask = Task.Run(() => PublishQueuedMessagesAsync(cancellationToken), cancellationToken);
+            _publishingTask.RunInBackground(_logger);
         }
 
         void StopMaintainingConnection()
@@ -689,7 +705,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
             }
         }
 
-        void StopPublishing()
+        void CancelPublishing()
         {
             try
             {
@@ -699,6 +715,25 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
             {
                 _publishingCancellationToken?.Dispose();
                 _publishingCancellationToken = null;
+            }
+        }
+
+        async Task StopPublishingAsync()
+        {
+            CancelPublishing();
+            if (_publishingTask != null)
+            {
+                // A canceled worker may still be inside an interceptor or storage
+                // write. Drain it before replacing the worker or disposing storage.
+                try
+                {
+                    await _publishingTask.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+
+                _publishingTask = null;
             }
         }
 
@@ -712,18 +747,21 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 switch (connectionState)
                 {
                     case ReconnectionResult.NotConnected:
-                        StopPublishing();
+                        await StopPublishingAsync().ConfigureAwait(false);
                         await Task.Delay(ComputeReconnectDelay(Options.AutoReconnectDelay, Options.MaxReconnectDelay, _reconnectFailureCount), cancellationToken).ConfigureAwait(false);
-                        _reconnectFailureCount++;
+                        if (_reconnectFailureCount < int.MaxValue)
+                        {
+                            _reconnectFailureCount++;
+                        }
                         break;
                     case ReconnectionResult.Reconnected:
                         _reconnectFailureCount = 0;
                         await PublishReconnectSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
-                        StartPublishing();
+                        await StartPublishingAsync().ConfigureAwait(false);
                         break;
                     case ReconnectionResult.Recovered:
                         _reconnectFailureCount = 0;
-                        StartPublishing();
+                        await StartPublishingAsync().ConfigureAwait(false);
                         break;
                     case ReconnectionResult.StillConnected:
                         await PublishSubscriptionsAsync(Options.ConnectionCheckInterval, cancellationToken).ConfigureAwait(false);
@@ -767,7 +805,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                     await InternalClient.PublishAsync(message.ApplicationMessage, publishTimeout.Token).ConfigureAwait(false);
                 }
 
-                using (await _messageQueueLock.EnterAsync(cancellationToken).ConfigureAwait(false)) //lock to avoid conflict with this.PublishAsync
+                using (await _messageQueueLock.EnterAsync().ConfigureAwait(false)) // Complete storage cleanup even when publishing has been stopped.
                 {
                     // While publishing this message, this.PublishAsync could have booted this
                     // message off the queue to make room for another (when using a cap
@@ -798,7 +836,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                     //contradict the expected behavior of QoS 1 and 2, that's also true
                     //for the usage of a message queue cap, so it's still consistent
                     //with prior behavior in that way.
-                    using (await _messageQueueLock.EnterAsync(cancellationToken).ConfigureAwait(false)) //lock to avoid conflict with this.PublishAsync
+                    using (await _messageQueueLock.EnterAsync().ConfigureAwait(false)) // Complete storage cleanup even when publishing has been stopped.
                     {
                         _messageQueue.RemoveFirst(i => i.Id.Equals(message.Id));
 
