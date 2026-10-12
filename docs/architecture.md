@@ -4,9 +4,15 @@ This project adds ASP.NET‑style routing on top of MQTTnet's managed client. Co
 
 ## Routing Flow
 
-1. **Route table creation** – `MqttRouteTableFactory` scans the configured assemblies for classes decorated with [`MqttControllerAttribute`](../Source/Attributes/MqttControllerAttribute.cs). It reads the [`MqttRouteAttribute`](../Source/Attributes/MqttRouteAttribute.cs) from controllers and action methods to build an in‑memory `MqttRouteTable`.
-2. **Message dispatch** – `MqttRouter` receives `MqttApplicationMessageReceivedEventArgs` from the managed client. The topic is matched against the `MqttRouteTable`. When a match is found a controller instance is created through dependency injection and the action method is invoked.
+1. **Route table creation** – `MqttRouteTableFactory` scans the configured assemblies for classes decorated with [`MqttControllerAttribute`](../Source/Attributes/MqttControllerAttribute.cs). It reads the [`MqttRouteAttribute`](../Source/Attributes/MqttRouteAttribute.cs) from controllers and action methods to build an in‑memory `MqttRouteTable`. Routes are ordered most-specific-first (literals beat parameters, constrained beats plain, optional and catch-all go last); ambiguous pairs throw at startup.
+2. **Message dispatch** – `MqttRouter` receives `MqttApplicationMessageReceivedEventArgs` from the managed client. The topic is matched against the `MqttRouteTable`. When a match is found a controller instance is created in a fresh DI scope and the action method is invoked. Unmatched topics set `ProcessingFailed` unless `allowUnmatchedRoutes` is enabled.
 3. **Interception** – If an implementation of `IRouteInvocationInterceptor` is registered it is called before and after the controller action, allowing custom processing or logging.
+
+## Action invocation
+
+Supported action return types are `void`, `Task`, `Task<T>`, `ValueTask` and `ValueTask<T>`. Results are awaited and discarded; exceptions mark the message as failed (`ProcessingFailed = true`).
+
+Parameters are bound in order: `CancellationToken` receives `CancellationToken.None`, `[FromPayload]` parameters are JSON-deserialized with the configured `MqttRoutingOptions.SerializerOptions`, and everything else is matched against route values (with invariant-culture conversion as fallback).
 
 ## Key Classes
 
