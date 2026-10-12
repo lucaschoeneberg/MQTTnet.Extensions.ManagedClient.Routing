@@ -12,19 +12,34 @@ using MQTTnet.Internal;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 {
-    public class ManagedMqttClientStorageManager(IManagedMqttClientStorage storage)
+    public class ManagedMqttClientStorageManager(IManagedMqttClientStorage storage) : IDisposable
     {
         private readonly List<ManagedMqttApplicationMessage> _messages = [];
         private readonly AsyncLock _messagesLock = new();
 
         private readonly IManagedMqttClientStorage _storage = storage ?? throw new ArgumentNullException(nameof(storage));
 
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _messagesLock.Dispose();
+            }
+        }
+
         public async Task<List<ManagedMqttApplicationMessage>> LoadQueuedMessagesAsync()
         {
             var loadedMessages = await _storage.LoadQueuedMessagesAsync().ConfigureAwait(false);
             _messages.AddRange(loadedMessages);
 
-            return _messages;
+            // Return a copy so callers cannot corrupt the internal queue.
+            return [.. _messages];
         }
 
         public async Task AddAsync(ManagedMqttApplicationMessage applicationMessage)

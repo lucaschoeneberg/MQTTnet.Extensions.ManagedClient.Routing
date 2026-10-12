@@ -65,6 +65,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
         Task _maintainConnectionTask;
         CancellationTokenSource _publishingCancellationToken;
 
+        int _reconnectFailureCount;
+
         ManagedMqttClientStorageManager _storageManager;
         bool _isCleanDisconnect;
 
@@ -275,6 +277,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 await Task.WhenAny(_maintainConnectionTask);
                 _maintainConnectionTask = null;
             }
+
+            _storageManager?.Dispose();
+            _storageManager = null;
         }
 
         public Task SubscribeAsync(IEnumerable<MqttTopicFilter> topicFilters)
@@ -339,6 +344,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 _messageQueueLock.Dispose();
                 InternalClient.Dispose();
                 _subscriptionsQueuedSignal.Dispose();
+                _storageManager?.Dispose();
+                _storageManager = null;
             }
 
             base.Dispose(disposing);
@@ -348,6 +355,20 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
         {
             var remainingTime = endTime - DateTime.UtcNow;
             return remainingTime < TimeSpan.Zero ? TimeSpan.Zero : remainingTime;
+        }
+
+        /// <summary>
+        /// Exponential backoff with equal jitter: doubles <paramref name="baseDelay"/>
+        /// per consecutive failure, capped at <paramref name="maxDelay"/>, then
+        /// randomized into [50%, 100%] so fleet clients do not retry in lockstep.
+        /// Never below one second (a zero delay would hot-spin the loop).
+        /// </summary>
+        internal static TimeSpan ComputeReconnectDelay(TimeSpan baseDelay, TimeSpan maxDelay, int consecutiveFailures)
+        {
+            var exponential = baseDelay.TotalMilliseconds * Math.Pow(2, Math.Max(0, Math.Min(consecutiveFailures, 10)));
+            var capped = Math.Min(exponential, Math.Max(maxDelay.TotalMilliseconds, 0));
+            var jittered = capped * (0.5 + Random.Shared.NextDouble() * 0.5);
+            return TimeSpan.FromMilliseconds(Math.Max(jittered, TimeSpan.FromSeconds(1).TotalMilliseconds));
         }
 
         CancellationTokenSource NewTimeoutToken(CancellationToken linkedToken)
@@ -692,13 +713,16 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 {
                     case ReconnectionResult.NotConnected:
                         StopPublishing();
-                        await Task.Delay(Options.AutoReconnectDelay, cancellationToken).ConfigureAwait(false);
+                        await Task.Delay(ComputeReconnectDelay(Options.AutoReconnectDelay, Options.MaxReconnectDelay, _reconnectFailureCount), cancellationToken).ConfigureAwait(false);
+                        _reconnectFailureCount++;
                         break;
                     case ReconnectionResult.Reconnected:
+                        _reconnectFailureCount = 0;
                         await PublishReconnectSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
                         StartPublishing();
                         break;
                     case ReconnectionResult.Recovered:
+                        _reconnectFailureCount = 0;
                         StartPublishing();
                         break;
                     case ReconnectionResult.StillConnected:
