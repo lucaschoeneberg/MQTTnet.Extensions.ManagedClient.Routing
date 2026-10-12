@@ -13,7 +13,8 @@ public class MqttRoutingOptions
     /// Execution deadline for a controller action, including synchronous work.
     /// Must be positive and at most 4,294,967,294 milliseconds (the .NET timer
     /// maximum) when set; null (default) disables the deadline. Actions
-    /// receive a token canceled at the deadline and the message is marked failed.
+    /// receive a token canceled at the deadline, connection closure, or routing
+    /// shutdown, and canceled processing is marked failed.
     /// Cancellation is cooperative: the scope and concurrency slot are retained
     /// until the action actually terminates, even if it ignores the token.
     /// </summary>

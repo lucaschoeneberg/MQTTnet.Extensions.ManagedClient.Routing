@@ -193,7 +193,7 @@ public class MqttRouterInvocationTests
         // Assert
         Assert.AreEqual(1, AsyncTestController.Calls);
         Assert.AreEqual(7, AsyncTestController.LastId);
-        Assert.IsTrue(AsyncTestController.TokenWasNone);
+        Assert.IsFalse(AsyncTestController.TokenWasNone);
         Assert.IsFalse(args.ProcessingFailed);
     }
 

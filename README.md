@@ -78,8 +78,9 @@ return types. Returned values are awaited and then discarded; throw to mark
 processing as failed. Parameters are bound from route values, from the JSON
 payload via `[FromPayload]`, or from DI context:
 
-- `CancellationToken` is bound to a deadline token when
-  `MaxActionExecutionTime` is configured, otherwise `CancellationToken.None`.
+- `CancellationToken` tracks routing shutdown and, for `ManagedMqttClient`,
+  the current connection. `MaxActionExecutionTime` adds an execution deadline.
+  This token is cancellable even without an action deadline.
 - The current message is available via `MqttBaseController.Message` /
   `MqttContext`, or a `[MqttControllerContext]` property on custom
   controllers.
@@ -127,7 +128,8 @@ An action that ignores cancellation can therefore hold a slot indefinitely.
 
 In parallel mode routing disables MQTTnet's automatic acknowledgement and
 acknowledges successful messages after the action and `RouteExecuted` finish,
-in receive order as required by MQTT.
+in receive order within the original connection. Old deliveries cannot
+acknowledge packets on a replacement connection after reconnect.
 Failed QoS 1/2 deliveries remain unacknowledged; broker redelivery depends on
 the MQTT session. If automatic acknowledgement was already disabled before
 routing, the caller retains responsibility for acknowledging the message.
@@ -160,9 +162,25 @@ two minutes and must be between one second and the .NET timer maximum of
 4,294,967,294 milliseconds; values outside this range throw
 `ArgumentException` during `StartAsync`. Even very small base delays
 eventually reach this cap. Every new `StartAsync` resets the failure count.
-`StopAsync` waits for the publishing worker, including interceptors and
-storage writes, before releasing storage; these operations must complete
-for shutdown to finish.
+`StopAsync` called outside a callback waits for publishing, registered routed
+actions, and storage writes before releasing storage. Inside a managed-client
+callback or routed action it requests shutdown and returns without waiting
+for its own task; a later external call awaits full completion. `StartAsync`
+throws `InvalidOperationException` while shutdown is still in progress.
+
+### Resource ownership and shutdown
+
+Routing awaits controller cleanup before disposing its asynchronous DI scope.
+Controllers and dependencies may implement `IDisposable`, `IAsyncDisposable`,
+or both; asynchronous cleanup takes precedence. Mark public cleanup methods
+with `[NonAction]` so controller discovery does not expose them as routes.
+
+`AddMqttControllers` registers a hosted service that drains accepted dispatches
+during `Host.StopAsync`. For standalone clients, await `client.StopAsync()`
+outside a callback before disposing the service provider. Shutdown cancels
+action tokens and waits for actual termination, so handlers and cleanup
+operations must eventually complete. Disposing a container alone does not
+replace this shutdown sequence.
 
 ## Versioning
 

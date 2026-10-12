@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unbounded, bounding offline memory usage.
 - Handler, binding and interceptor failures no longer propagate into the
   MQTT dispatch loop; messages are marked failed and logged instead.
+- Action cancellation tokens now also track connection closure and routing
+  shutdown, even when no execution deadline is configured.
+- `StopAsync` inside a managed-client callback or routed action now requests
+  shutdown without joining its own task. External callers await complete
+  shutdown; restarting during shutdown is rejected.
 
 ### Fixed
 
@@ -44,6 +49,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   post-publish storage cleanup during shutdown.
 - Reconnect backoff grows to the configured maximum even for tiny base
   delays, and resets when starting a new managed session.
+- Deferred acknowledgements are bound to their original connection, preventing
+  old handlers from acknowledging replacement-session packets after reconnect.
+- Catch-all routes now validate their topic prefix and constraints before matching.
+- Hosted shutdown and standalone managed-client stop drain incoming dispatches
+  before container teardown; pending admission is canceled during shutdown.
+- Controller instances are explicitly disposed, and asynchronous controller
+  and scoped-service cleanup is awaited before releasing dispatch slots.
 
 ## [1.2.0] - 2026-10-11
 

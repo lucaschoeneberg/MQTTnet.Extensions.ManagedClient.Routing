@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Text.Unicode;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using MQTTnet.Extensions.ManagedClient.Routing.ManagedClient;
 using MQTTnet.Extensions.ManagedClient.Routing.Routing;
 
@@ -23,6 +25,12 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             return services.AddMqttControllers(opt => { });
         }
 
+        /// <summary>Registers controller routing and a hosted service that drains routing during host shutdown.</summary>
+        /// <param name="services">The service collection.</param>
+        /// <param name="options">The callback configuring assemblies, serialization, interception, deadlines, and concurrency.</param>
+        /// <returns>The same service collection.</returns>
+        /// <exception cref="InvalidOperationException">A concurrency limit or action deadline is outside its supported range.</exception>
+        /// <remarks>Call StopAsync on standalone managed clients before disposing their service provider.</remarks>
         public static IServiceCollection AddMqttControllers(this IServiceCollection services,
             Action<MqttRoutingOptions> options)
         {
@@ -68,6 +76,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             services.AddSingleton<ITypeActivatorCache>(new TypeActivatorCache());
             // Share the dispatch gate across all clients using this service provider.
             services.AddSingleton<MqttRouter>();
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, MqttRoutingHostedService>());
             if (opt.RouteInvocationInterceptor != null)
             {
                 services.AddSingleton(typeof(IRouteInvocationInterceptor), opt.RouteInvocationInterceptor);
@@ -121,6 +130,11 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             return opt;
         }
 
+        /// <summary>Attaches routing to the application's managed client.</summary>
+        /// <param name="app">The application builder.</param>
+        /// <param name="allowUnmatchedRoutes">Whether unmatched topics may be acknowledged successfully. Defaults to false.</param>
+        /// <returns>The same application builder.</returns>
+        /// <remarks>ManagedMqttClient connections own acknowledgement ordering and cancellation. Host shutdown drains accepted dispatches.</remarks>
         public static IApplicationBuilder UseAttributeRouting(this IApplicationBuilder app,
             bool allowUnmatchedRoutes = false)
         {
@@ -128,22 +142,41 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             var client = app.ApplicationServices.GetRequiredService<IManagedMqttClient>();
             var interceptor = app.ApplicationServices.GetService<IRouteInvocationInterceptor>();
 
-            client.ApplicationMessageReceivedAsync += async args =>
-                await router.OnIncomingApplicationMessage(app.ApplicationServices, args, allowUnmatchedRoutes,
-                    interceptor, dispatchInBackground: true);
+            AttachRouting(client, router, interceptor, app.ApplicationServices, allowUnmatchedRoutes);
 
             return app;
         }
 
+        /// <summary>Attaches routing whose connection-bound dispatches are drained by client shutdown.</summary>
+        /// <param name="client">The managed client.</param>
+        /// <param name="svcProvider">The container owning routing and its controller dependencies.</param>
+        /// <param name="allowUnmatchedRoutes">Whether unmatched topics may be acknowledged successfully. Defaults to false.</param>
+        /// <remarks>Await client.StopAsync outside a callback before disposing the container. Automatic acknowledgements never cross connection lifetimes.</remarks>
         public static void WithAttributeRouting(this ManagedMqttClient client, IServiceProvider svcProvider,
             bool allowUnmatchedRoutes = false)
         {
             var router = svcProvider.GetRequiredService<MqttRouter>();
             var interceptor = svcProvider.GetService<IRouteInvocationInterceptor>();
 
-            client.ApplicationMessageReceivedAsync += async args =>
-                await router.OnIncomingApplicationMessage(svcProvider, args, allowUnmatchedRoutes,
-                    interceptor, dispatchInBackground: true);
+            AttachRouting(client, router, interceptor, svcProvider, allowUnmatchedRoutes);
+        }
+
+        private static void AttachRouting(IManagedMqttClient client, MqttRouter router,
+            IRouteInvocationInterceptor? interceptor, IServiceProvider serviceProvider, bool allowUnmatchedRoutes)
+        {
+            var managedClient = client as ManagedMqttClient;
+            client.ApplicationMessageReceivedAsync += args =>
+            {
+                MqttDispatchLifetime? lifetime = managedClient == null ? null : new MqttDispatchLifetime(
+                    managedClient, managedClient.EnterCallbackScope, managedClient.IncomingConnectionToken);
+                return router.OnIncomingApplicationMessage(serviceProvider, args, allowUnmatchedRoutes,
+                    interceptor, dispatchInBackground: true, lifetime);
+            };
+
+            if (managedClient != null)
+            {
+                managedClient.StoppingAsync += _ => router.DrainAsync(managedClient);
+            }
         }
     }
 }

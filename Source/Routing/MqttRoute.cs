@@ -103,7 +103,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             var allNonOptionalSegmentsMatch =
                 numMatchingSegments >= (Template.Segments.Count - Template.OptionalSegmentsCount);
 
-            return Template.ContainsCatchAllSegment || (allRouteSegmentsMatch && allNonOptionalSegmentsMatch);
+            return Template.ContainsCatchAllSegment
+                ? numMatchingSegments == Template.Segments.Count
+                : allRouteSegmentsMatch && allNonOptionalSegmentsMatch;
         }
     }
 }
