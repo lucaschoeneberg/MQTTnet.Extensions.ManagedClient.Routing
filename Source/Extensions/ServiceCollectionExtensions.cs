@@ -32,6 +32,19 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             opt.RouteInvocationInterceptor = null;
             options?.Invoke(opt);
 
+            if (opt.MaxConcurrentDispatches < 1)
+            {
+                throw new InvalidOperationException(
+                    "MqttRoutingOptions.MaxConcurrentDispatches must be at least 1.");
+            }
+
+            if (opt.MaxActionExecutionTime <= TimeSpan.Zero ||
+                opt.MaxActionExecutionTime?.TotalMilliseconds > uint.MaxValue - 1)
+            {
+                throw new InvalidOperationException(
+                    "MqttRoutingOptions.MaxActionExecutionTime must be positive and within the supported timer range when set.");
+            }
+
             services.AddSingleton(opt);
             services.AddSingleton(_ =>
             {
@@ -53,7 +66,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             });
 
             services.AddSingleton<ITypeActivatorCache>(new TypeActivatorCache());
-            services.AddTransient<MqttRouter>();
+            // Share the dispatch gate across all clients using this service provider.
+            services.AddSingleton<MqttRouter>();
             if (opt.RouteInvocationInterceptor != null)
             {
                 services.AddSingleton(typeof(IRouteInvocationInterceptor), opt.RouteInvocationInterceptor);
@@ -66,6 +80,28 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             where T : IRouteInvocationInterceptor
         {
             opt.RouteInvocationInterceptor = typeof(T);
+        }
+
+        /// <summary>Configures a cooperative action deadline, including synchronous invocation.</summary>
+        /// <param name="opt">The routing options being configured.</param>
+        /// <param name="timeout">A positive deadline within the supported timer range. Overruns fail the message; cleanup waits for the action to terminate.</param>
+        /// <returns>The same options instance.</returns>
+        /// <remarks>Invalid deadlines are rejected by <see cref="AddMqttControllers(IServiceCollection, Action{MqttRoutingOptions})"/>.</remarks>
+        public static MqttRoutingOptions WithMaxActionExecutionTime(this MqttRoutingOptions opt, TimeSpan timeout)
+        {
+            opt.MaxActionExecutionTime = timeout;
+            return opt;
+        }
+
+        /// <summary>Configures bounded dispatch concurrency while deferring acknowledgements until processing finishes.</summary>
+        /// <param name="opt">The routing options being configured.</param>
+        /// <param name="maxConcurrentDispatches">At least 1. The default is 1; higher values may reorder independent messages.</param>
+        /// <returns>The same options instance.</returns>
+        /// <remarks>Invalid limits are rejected by <see cref="AddMqttControllers(IServiceCollection, Action{MqttRoutingOptions})"/>.</remarks>
+        public static MqttRoutingOptions WithMaxConcurrentDispatches(this MqttRoutingOptions opt, int maxConcurrentDispatches)
+        {
+            opt.MaxConcurrentDispatches = maxConcurrentDispatches;
+            return opt;
         }
 
         public static MqttRoutingOptions WithJsonSerializerOptions(this MqttRoutingOptions opt)
@@ -93,7 +129,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             var interceptor = app.ApplicationServices.GetService<IRouteInvocationInterceptor>();
 
             client.ApplicationMessageReceivedAsync += async args =>
-                await HandleMqttMessage(router, interceptor, app.ApplicationServices, args, allowUnmatchedRoutes);
+                await router.OnIncomingApplicationMessage(app.ApplicationServices, args, allowUnmatchedRoutes,
+                    interceptor, dispatchInBackground: true);
 
             return app;
         }
@@ -105,40 +142,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             var interceptor = svcProvider.GetService<IRouteInvocationInterceptor>();
 
             client.ApplicationMessageReceivedAsync += async args =>
-                await HandleMqttMessage(router, interceptor, svcProvider, args, allowUnmatchedRoutes);
-        }
-
-        private static async Task HandleMqttMessage(
-            MqttRouter router,
-            IRouteInvocationInterceptor? interceptor,
-            IServiceProvider serviceProvider,
-            MqttApplicationMessageReceivedEventArgs args,
-            bool allowUnmatchedRoutes)
-        {
-            object? correlationObject = null;
-            if (interceptor != null)
-            {
-                correlationObject = await interceptor.RouteExecuting(args);
-            }
-
-            try
-            {
-                await router.OnIncomingApplicationMessage(serviceProvider, args, allowUnmatchedRoutes);
-
-                if (interceptor != null)
-                {
-                    await interceptor.RouteExecuted(correlationObject, args, null);
-                }
-            }
-            catch (Exception ex)
-            {
-                if (interceptor != null)
-                {
-                    await interceptor.RouteExecuted(correlationObject, args, ex);
-                }
-
-                throw;
-            }
+                await router.OnIncomingApplicationMessage(svcProvider, args, allowUnmatchedRoutes,
+                    interceptor, dispatchInBackground: true);
         }
     }
 }

@@ -346,11 +346,6 @@ dotnet_diagnostic.CA1822.severity = none
 dotnet_diagnostic.CA1309.severity = none
 dotnet_diagnostic.CA1707.severity = none
 
-# Vendored MQTTnet ManagedClient fork: eingefroren, Fixes gehören upstream.
-# Analyzer-Hinweise bleiben in der IDE sichtbar, blockieren den Build aber nicht.
-[Source/ManagedClient/**.cs]
-dotnet_diagnostic.CA1001.severity = suggestion
-
 #### C# Coding Conventions ####
 
 #### Naming styles ####
