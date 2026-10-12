@@ -1,0 +1,8 @@
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxReconnectDelay.get -> System.TimeSpan
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxReconnectDelay.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.Dispose() -> void
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.MaxActionExecutionTime.get -> System.TimeSpan?
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.MaxConcurrentDispatches.get -> int
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithMaxActionExecutionTime(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt, System.TimeSpan timeout) -> MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithMaxConcurrentDispatches(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt, int maxConcurrentDispatches) -> MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
+virtual MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.Dispose(bool disposing) -> void

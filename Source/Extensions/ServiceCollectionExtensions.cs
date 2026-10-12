@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Unicode;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MQTTnet.Extensions.ManagedClient.Routing.ManagedClient;
 using MQTTnet.Extensions.ManagedClient.Routing.Routing;
 
@@ -32,6 +33,18 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             opt.RouteInvocationInterceptor = null;
             options?.Invoke(opt);
 
+            if (opt.MaxConcurrentDispatches < 1)
+            {
+                throw new InvalidOperationException(
+                    "MqttRoutingOptions.MaxConcurrentDispatches must be at least 1.");
+            }
+
+            if (opt.MaxActionExecutionTime <= TimeSpan.Zero)
+            {
+                throw new InvalidOperationException(
+                    "MqttRoutingOptions.MaxActionExecutionTime must be positive when set.");
+            }
+
             services.AddSingleton(opt);
             services.AddSingleton(_ =>
             {
@@ -53,7 +66,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             });
 
             services.AddSingleton<ITypeActivatorCache>(new TypeActivatorCache());
-            services.AddTransient<MqttRouter>();
+            // Stateless: safe to share across all dispatched messages.
+            services.AddSingleton<MqttRouter>();
             if (opt.RouteInvocationInterceptor != null)
             {
                 services.AddSingleton(typeof(IRouteInvocationInterceptor), opt.RouteInvocationInterceptor);
@@ -66,6 +80,18 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             where T : IRouteInvocationInterceptor
         {
             opt.RouteInvocationInterceptor = typeof(T);
+        }
+
+        public static MqttRoutingOptions WithMaxActionExecutionTime(this MqttRoutingOptions opt, TimeSpan timeout)
+        {
+            opt.MaxActionExecutionTime = timeout;
+            return opt;
+        }
+
+        public static MqttRoutingOptions WithMaxConcurrentDispatches(this MqttRoutingOptions opt, int maxConcurrentDispatches)
+        {
+            opt.MaxConcurrentDispatches = maxConcurrentDispatches;
+            return opt;
         }
 
         public static MqttRoutingOptions WithJsonSerializerOptions(this MqttRoutingOptions opt)
@@ -108,7 +134,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
                 await HandleMqttMessage(router, interceptor, svcProvider, args, allowUnmatchedRoutes);
         }
 
-        private static async Task HandleMqttMessage(
+        internal static async Task HandleMqttMessage(
             MqttRouter router,
             IRouteInvocationInterceptor? interceptor,
             IServiceProvider serviceProvider,
@@ -116,9 +142,22 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             bool allowUnmatchedRoutes)
         {
             object? correlationObject = null;
+            var logger = serviceProvider.GetService<ILogger<MqttRouter>>();
             if (interceptor != null)
             {
-                correlationObject = await interceptor.RouteExecuting(args);
+                try
+                {
+                    correlationObject = await interceptor.RouteExecuting(args);
+                }
+                catch (Exception ex)
+                {
+                    // A failing interceptor must never fault the MQTT dispatch
+                    // loop; report through RouteExecuted and mark as failed.
+                    logger?.LogError(ex, "RouteExecuting interceptor failed.");
+                    await TryRouteExecutedAsync(interceptor, logger, null, args, ex);
+                    args.ProcessingFailed = true;
+                    return;
+                }
             }
 
             try
@@ -134,10 +173,25 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             {
                 if (interceptor != null)
                 {
-                    await interceptor.RouteExecuted(correlationObject, args, ex);
+                    await TryRouteExecutedAsync(interceptor, logger, correlationObject, args, ex);
                 }
 
-                throw;
+                args.ProcessingFailed = true;
+            }
+        }
+
+        private static async Task TryRouteExecutedAsync(IRouteInvocationInterceptor interceptor,
+            ILogger? logger, object? correlationObject, MqttApplicationMessageReceivedEventArgs args, Exception ex)
+        {
+            try
+            {
+                await interceptor.RouteExecuted(correlationObject, args, ex);
+            }
+            catch (Exception inner)
+            {
+                // Interceptor failures are observed here so they can never
+                // fault the MQTT dispatch loop or mask the original error.
+                logger?.LogError(inner, "RouteExecuted interceptor failed.");
             }
         }
     }

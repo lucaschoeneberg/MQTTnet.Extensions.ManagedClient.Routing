@@ -71,4 +71,24 @@ public class ServiceCollectionExtensionsTests
 
         Assert.IsNotNull(options.SerializerOptions);
     }
+
+    [TestMethod]
+    public void AddMqttControllers_InvalidConcurrency_Throws()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            services.AddMqttControllers(opt => opt.WithMaxConcurrentDispatches(0)));
+    }
+
+    [TestMethod]
+    public void AddMqttControllers_InvalidTimeout_Throws()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            services.AddMqttControllers(opt => opt.WithMaxActionExecutionTime(TimeSpan.Zero)));
+    }
 }

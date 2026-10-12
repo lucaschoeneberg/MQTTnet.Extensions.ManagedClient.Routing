@@ -10,23 +10,42 @@ using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
-    internal class MqttRouter
+    internal sealed class MqttRouter : IDisposable
     {
         private readonly ILogger<MqttRouter> logger;
         private readonly MqttRouteTable routeTable;
         private readonly ITypeActivatorCache typeActivator;
+        private readonly MqttRoutingOptions? options;
+        private readonly SemaphoreSlim dispatchGate;
 
-        public MqttRouter(ILogger<MqttRouter> logger, MqttRouteTable routeTable, ITypeActivatorCache typeActivator)
+        public MqttRouter(ILogger<MqttRouter> logger, MqttRouteTable routeTable, ITypeActivatorCache typeActivator,
+            MqttRoutingOptions? options = null)
         {
             this.logger = logger;
             this.routeTable = routeTable;
             this.typeActivator = typeActivator;
+            this.options = options;
+            dispatchGate = new SemaphoreSlim(Math.Max(1, options?.MaxConcurrentDispatches ?? 1));
+        }
+
+        public void Dispose()
+        {
+            dispatchGate.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         internal async Task OnIncomingApplicationMessage(IServiceProvider svcProvider,
             MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes)
         {
-            var routeContext = new MqttRouteContext(context.ApplicationMessage.Topic);
+            var topic = context.ApplicationMessage?.Topic;
+            if (string.IsNullOrEmpty(topic))
+            {
+                logger.LogWarning("Received message without topic; marking as failed.");
+                context.ProcessingFailed = true;
+                return;
+            }
+
+            var routeContext = new MqttRouteContext(topic);
 
             routeTable.Route(routeContext);
 
@@ -35,17 +54,60 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 // Route not found
                 if (!allowUnmatchedRoutes)
                 {
-                    logger.LogDebug("No route matched for topic '{Topic}'", context.ApplicationMessage.Topic);
+                    logger.LogDebug("No route matched for topic '{Topic}'", topic);
                 }
 
                 context.ProcessingFailed = !allowUnmatchedRoutes;
+                return;
             }
-            else
+
+            logger.LogDebug("Route matched for topic '{Topic}'", topic);
+
+            if ((options?.MaxConcurrentDispatches ?? 1) < 2)
             {
-                logger.LogDebug("Route matched for topic '{Topic}'", context.ApplicationMessage.Topic);
+                // Sequential dispatch preserves message order and MQTT
+                // acknowledgement semantics.
+                await DispatchCoreAsync(svcProvider, context, routeContext).ConfigureAwait(false);
+                return;
+            }
+
+            // Bounded parallel dispatch: the MQTT pipeline continues reading
+            // while this message is processed in the background. Ordering is
+            // no longer guaranteed; use only for independent messages.
+            await dispatchGate.WaitAsync().ConfigureAwait(false);
+            _ = DispatchInBackgroundAsync(svcProvider, context, routeContext);
+        }
+
+        private async Task DispatchInBackgroundAsync(IServiceProvider svcProvider,
+            MqttApplicationMessageReceivedEventArgs context, MqttRouteContext routeContext)
+        {
+            try
+            {
+                await DispatchCoreAsync(svcProvider, context, routeContext).ConfigureAwait(false);
+            }
+            finally
+            {
+                dispatchGate.Release();
+            }
+        }
+
+        private async Task DispatchCoreAsync(IServiceProvider svcProvider,
+            MqttApplicationMessageReceivedEventArgs context, MqttRouteContext routeContext)
+        {
+            // Ensure message is marked as accepted when the route is
+            // processed successfully.
+            context.ProcessingFailed = false;
+
+            using var timeoutCts = options?.MaxActionExecutionTime is { } maxExecutionTime
+                ? new CancellationTokenSource(maxExecutionTime)
+                : null;
+            var actionToken = timeoutCts?.Token ?? CancellationToken.None;
+
+            try
+            {
                 using (var scope = svcProvider.CreateScope())
                 {
-                    var declaringType = routeContext.Handler.DeclaringType;
+                    var declaringType = routeContext.Handler!.DeclaringType;
 
                     if (declaringType == null)
                     {
@@ -96,56 +158,56 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                     ParameterInfo[] parameters = routeContext.Handler.GetParameters();
 
-                    // Ensure message is marked as accepted when the route is
-                    // processed successfully.
-                    context.ProcessingFailed = false;
-
                     if (parameters.Length == 0)
                     {
-                        await HandlerInvoker(routeContext.Handler, classInstance, null).ConfigureAwait(false);
+                        await HandlerInvoker(routeContext.Handler, classInstance, null, actionToken).ConfigureAwait(false);
                     }
                     else
                     {
-                        object?[] paramArray;
+                        var paramArray = parameters.Select(p =>
+                                MatchParameterOrThrow(p, routeContext.Parameters, controllerContext, svcProvider, actionToken)
+                            )
+                            .ToArray();
 
-                        try
-                        {
-                            paramArray = parameters.Select(p =>
-                                    MatchParameterOrThrow(p, routeContext.Parameters, controllerContext, svcProvider)
-                                )
-                                .ToArray();
-
-                            await HandlerInvoker(routeContext.Handler, classInstance, paramArray).ConfigureAwait(false);
-                        }
-                        catch (ArgumentException ex)
-                        {
-                            logger.LogError(ex,
-                                "Unable to match route parameters to all arguments. See inner exception for details.");
-
-                            // Parameter matching failed; reject the message.
-                            context.ProcessingFailed = true;
-                        }
-                        catch (TargetInvocationException ex)
-                        {
-                            logger.LogError(ex.InnerException,
-                                "Unhandled MQTT action exception. See inner exception for details.");
-
-                            // This is an unhandled exception from the invoked action
-                            context.ProcessingFailed = true;
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, "Unable to invoke Mqtt Action. See inner exception for details.");
-
-                            // Unexpected error; reject the message.
-                            context.ProcessingFailed = true;
-                        }
+                        await HandlerInvoker(routeContext.Handler, classInstance, paramArray, actionToken).ConfigureAwait(false);
                     }
                 }
             }
+            catch (TimeoutException ex)
+            {
+                logger.LogWarning(ex,
+                    "MQTT action exceeded the configured execution time. See inner exception for details.");
+
+                context.ProcessingFailed = true;
+            }
+            catch (ArgumentException ex)
+            {
+                logger.LogError(ex,
+                    "Unable to match route parameters to all arguments. See inner exception for details.");
+
+                // Parameter matching failed; reject the message.
+                context.ProcessingFailed = true;
+            }
+            catch (TargetInvocationException ex)
+            {
+                logger.LogError(ex.InnerException,
+                    "Unhandled MQTT action exception. See inner exception for details.");
+
+                // This is an unhandled exception from the invoked action
+                context.ProcessingFailed = true;
+            }
+            catch (Exception ex)
+            {
+                // Catches activation, binding and invocation failures so a
+                // single bad message never faults the MQTT dispatch loop.
+                logger.LogError(ex, "Unable to invoke Mqtt Action. See inner exception for details.");
+
+                context.ProcessingFailed = true;
+            }
         }
 
-        private static async Task HandlerInvoker(MethodInfo method, object instance, object?[]? parameters)
+        private static async Task HandlerInvoker(MethodInfo method, object instance, object?[]? parameters,
+            CancellationToken cancellationToken)
         {
             if (method.ReturnType == typeof(void))
             {
@@ -164,13 +226,13 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             // Task and Task<T> (Task<T> derives from Task).
             if (result is Task task)
             {
-                await task.ConfigureAwait(false);
+                await task.WaitAsync(cancellationToken).ConfigureAwait(false);
                 return;
             }
 
             if (result is ValueTask valueTask)
             {
-                await valueTask.ConfigureAwait(false);
+                await valueTask.AsTask().WaitAsync(cancellationToken).ConfigureAwait(false);
                 return;
             }
 
@@ -184,7 +246,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         $"{method.DeclaringType?.FullName}.{method.Name} returned an unawaitable ValueTask<T>.");
                 }
 
-                await asTask.ConfigureAwait(false);
+                await asTask.WaitAsync(cancellationToken).ConfigureAwait(false);
                 return;
             }
 
@@ -194,13 +256,14 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
         private static object? MatchParameterOrThrow(ParameterInfo param,
             IReadOnlyDictionary<string, object?>? availableParameters, MqttControllerContext controllerContext,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider, CancellationToken actionToken)
         {
             if (param.ParameterType == typeof(CancellationToken))
             {
                 // The MQTT dispatch pipeline is event based and has no ambient
-                // cancellation token, so actions receive CancellationToken.None.
-                return CancellationToken.None;
+                // cancellation token, so actions receive CancellationToken.None
+                // unless a MaxActionExecutionTime timeout is configured.
+                return actionToken;
             }
 
             if (param.IsDefined(typeof(FromPayloadAttribute), false))
