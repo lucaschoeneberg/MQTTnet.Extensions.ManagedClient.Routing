@@ -17,6 +17,8 @@
         <RootNamespace>MQTTnet.Extensions.ManagedClient.Routing</RootNamespace>
         <PackageId>MQTTnet.Extensions.ManagedClient.Routing</PackageId>
         <PackageTags>mqtt;mqttnet;managed-client;routing;controllers</PackageTags>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">

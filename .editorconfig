@@ -329,6 +329,14 @@ dotnet_diagnostic.CA1816.severity = warning
 dotnet_diagnostic.CA2012.severity = warning
 dotnet_diagnostic.CA1821.severity = warning
 dotnet_diagnostic.CA1849.severity = warning
+# Public API contract: new APIs must go to PublicAPI.Unshipped.txt first
+# (RS0017), shipped surface changes must be deliberate (RS0016).
+# RS0037 is off by design: the API files intentionally carry no #nullable
+# header (nullability is enforced by the compiler instead), because the
+# oblivious vendored fork surface cannot be annotated truthfully.
+dotnet_diagnostic.RS0016.severity = warning
+dotnet_diagnostic.RS0017.severity = warning
+dotnet_diagnostic.RS0037.severity = none
 dotnet_diagnostic.CA1825.severity = none
 dotnet_diagnostic.CA1860.severity = none
 dotnet_diagnostic.CA1869.severity = none
