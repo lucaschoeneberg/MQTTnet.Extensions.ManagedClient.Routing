@@ -99,6 +99,8 @@ MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.ManagedMqttClientOptions() -> void
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxPendingMessages.get -> int
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxPendingMessages.set -> void
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxReconnectDelay.get -> System.TimeSpan
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxReconnectDelay.set -> void
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxTopicFiltersInSubscribeUnsubscribePackets.get -> int
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.MaxTopicFiltersInSubscribeUnsubscribePackets.set -> void
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptions.PendingMessagesOverflowStrategy.get -> MQTTnet.Server.MqttPendingMessagesOverflowStrategy
@@ -118,6 +120,7 @@ MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsB
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder.WithStorage(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClientStorage value) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.AddAsync(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage applicationMessage) -> System.Threading.Tasks.Task
+MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.Dispose() -> void
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.LoadQueuedMessagesAsync() -> System.Threading.Tasks.Task<System.Collections.Generic.List<MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage>>
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.ManagedMqttClientStorageManager(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClientStorage storage) -> void
 MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.RemoveAsync(MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttApplicationMessage applicationMessage) -> System.Threading.Tasks.Task
@@ -158,6 +161,8 @@ MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttControllerContext.MqttConte
 MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttControllerContext.MqttControllerContext() -> void
 MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
 MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.FromAssemblies.get -> System.Reflection.Assembly[]
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.MaxActionExecutionTime.get -> System.TimeSpan?
+MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.MaxConcurrentDispatches.get -> int
 MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.MqttRoutingOptions() -> void
 MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.RouteInvocationInterceptor.get -> System.Type
 MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions.SerializerOptions.get -> System.Text.Json.JsonSerializerOptions
@@ -168,6 +173,8 @@ static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExte
 static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithAttributeRouting(this MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClient client, System.IServiceProvider svcProvider, bool allowUnmatchedRoutes = false) -> void
 static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithJsonSerializerOptions(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt) -> MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
 static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithJsonSerializerOptions(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt, System.Text.Json.JsonSerializerOptions options) -> MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithMaxActionExecutionTime(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt, System.TimeSpan timeout) -> MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
+static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithMaxConcurrentDispatches(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt, int maxConcurrentDispatches) -> MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions
 static MQTTnet.Extensions.ManagedClient.Routing.Extensions.ServiceCollectionExtensions.WithRouteInvocationInterceptor<T>(this MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttRoutingOptions opt) -> void
 static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientExtensions.EnqueueAsync(this MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient managedMqttClient, string topic, string payload = null, MQTTnet.Protocol.MqttQualityOfServiceLevel qualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.AtMostOnce, bool retain = false) -> System.Threading.Tasks.Task
 static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientExtensions.SubscribeAsync(this MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient managedMqttClient, string topic, MQTTnet.Protocol.MqttQualityOfServiceLevel qualityOfServiceLevel = MQTTnet.Protocol.MqttQualityOfServiceLevel.AtMostOnce) -> System.Threading.Tasks.Task
@@ -175,6 +182,7 @@ static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientE
 static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.MqttClientFactoryExtensions.CreateManagedMqttClient(this MQTTnet.MqttClientFactory factory, MQTTnet.Diagnostics.Logger.IMqttNetLogger logger) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient
 static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.MqttClientFactoryExtensions.CreateManagedMqttClient(this MQTTnet.MqttClientFactory factory, MQTTnet.IMqttClient mqttClient = null) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.IManagedMqttClient
 static MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.MqttClientFactoryExtensions.CreateManagedMqttClientOptionsBuilder(this MQTTnet.MqttClientFactory _) -> MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientOptionsBuilder
+virtual MQTTnet.Extensions.ManagedClient.Routing.ManagedClient.ManagedMqttClientStorageManager.Dispose(bool disposing) -> void
 virtual MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.Accepted() -> System.Threading.Tasks.Task
 virtual MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.BadMessage() -> System.Threading.Tasks.Task
 virtual MQTTnet.Extensions.ManagedClient.Routing.Routing.MqttBaseController.Ok() -> System.Threading.Tasks.Task
