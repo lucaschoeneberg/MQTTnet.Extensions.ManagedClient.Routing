@@ -10,7 +10,7 @@ using MQTTnet.Extensions.ManagedClient.Routing.Attributes;
 
 namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 {
-    internal sealed class MqttRouter : IDisposable
+    internal sealed class MqttRouter : IDisposable, IAsyncDisposable
     {
         private readonly ILogger<MqttRouter> logger;
         private readonly MqttRouteTable routeTable;
@@ -20,7 +20,25 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         private readonly object dispatchLock = new();
         private int pendingDispatches;
         private bool disposed;
-        private Task acknowledgementTail = Task.CompletedTask;
+        private readonly CancellationTokenSource shutdown = new();
+        private readonly Dictionary<CancellationToken, DispatchGroup> dispatchGroups = new();
+        private TaskCompletionSource dispatchesDrained = CompletedSignal();
+        private bool resourcesDisposed;
+
+        private sealed class DispatchGroup(object? owner)
+        {
+            public object? Owner { get; } = owner;
+            public int Count { get; set; }
+            public Task AcknowledgementTail { get; set; } = Task.CompletedTask;
+            public TaskCompletionSource Drained { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+
+        private static TaskCompletionSource CompletedSignal()
+        {
+            var signal = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            signal.SetResult();
+            return signal;
+        }
 
         public MqttRouter(ILogger<MqttRouter> logger, MqttRouteTable routeTable, ITypeActivatorCache typeActivator,
             MqttRoutingOptions? options = null)
@@ -32,60 +50,150 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             dispatchGate = new SemaphoreSlim(Math.Max(1, options?.MaxConcurrentDispatches ?? 1));
         }
 
-        public void Dispose()
+        public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+        public async ValueTask DisposeAsync()
         {
+            Task drained;
+            bool cancel;
             lock (dispatchLock)
             {
+                cancel = !disposed;
                 disposed = true;
-                if (pendingDispatches == 0)
+                drained = dispatchesDrained.Task;
+            }
+
+            if (cancel)
+            {
+                try
+                {
+                    await shutdown.CancelAsync().ConfigureAwait(false);
+                }
+                catch (AggregateException ex)
+                {
+                    logger.LogError(ex, "MQTT action cancellation callback failed.");
+                }
+            }
+
+            await drained.ConfigureAwait(false);
+            lock (dispatchLock)
+            {
+                if (!resourcesDisposed)
                 {
                     dispatchGate.Dispose();
+                    shutdown.Dispose();
+                    resourcesDisposed = true;
                 }
             }
 
             GC.SuppressFinalize(this);
         }
 
-        internal async Task OnIncomingApplicationMessage(IServiceProvider svcProvider,
-            MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes,
-            IRouteInvocationInterceptor? interceptor = null, bool dispatchInBackground = false)
+        internal Task DrainAsync(object owner)
         {
             lock (dispatchLock)
             {
-                ObjectDisposedException.ThrowIf(disposed, this);
+                return Task.WhenAll(dispatchGroups.Values
+                    .Where(group => ReferenceEquals(group.Owner, owner))
+                    .Select(group => group.Drained.Task));
+            }
+        }
+
+        internal async Task OnIncomingApplicationMessage(IServiceProvider svcProvider,
+            MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes,
+            IRouteInvocationInterceptor? interceptor = null, bool dispatchInBackground = false,
+            MqttDispatchLifetime? lifetime = null)
+        {
+            var connectionToken = lifetime?.ConnectionToken ?? CancellationToken.None;
+            DispatchGroup group;
+            lock (dispatchLock)
+            {
+                if (disposed || connectionToken.IsCancellationRequested)
+                {
+                    context.ProcessingFailed = true;
+                    return;
+                }
+
+                if (pendingDispatches == 0)
+                {
+                    dispatchesDrained = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                }
+
+                if (!dispatchGroups.TryGetValue(connectionToken, out group!))
+                {
+                    group = new DispatchGroup(lifetime?.Owner);
+                    dispatchGroups.Add(connectionToken, group);
+                }
+
                 pendingDispatches++;
+                group.Count++;
             }
 
-            await dispatchGate.WaitAsync().ConfigureAwait(false);
+            using var admission = CancellationTokenSource.CreateLinkedTokenSource(connectionToken, shutdown.Token);
+            try
+            {
+                await dispatchGate.WaitAsync(admission.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                context.ProcessingFailed = true;
+                ReleaseDispatch(group, false, connectionToken);
+                return;
+            }
 
             if (dispatchInBackground && (options?.MaxConcurrentDispatches ?? 1) > 1)
             {
-                // MQTTnet serializes receive callbacks. Take ownership of automatic
-                // acknowledgement before returning so independent messages can overlap.
                 var acknowledge = context.AutoAcknowledge;
                 context.AutoAcknowledge = false;
                 Task previousAcknowledgement;
                 var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 lock (dispatchLock)
                 {
-                    previousAcknowledgement = acknowledgementTail;
-                    acknowledgementTail = completion.Task;
+                    previousAcknowledgement = group.AcknowledgementTail;
+                    group.AcknowledgementTail = completion.Task;
                 }
 
                 _ = Task.Run(() => DispatchMessageAsync(svcProvider, context,
-                    allowUnmatchedRoutes, interceptor, acknowledge, previousAcknowledgement, completion));
+                    allowUnmatchedRoutes, interceptor, acknowledge, lifetime, group, previousAcknowledgement, completion));
                 return;
             }
 
             await DispatchMessageAsync(svcProvider, context, allowUnmatchedRoutes,
-                interceptor, acknowledge: false).ConfigureAwait(false);
+                interceptor, false, lifetime, group).ConfigureAwait(false);
+        }
+
+        private void ReleaseDispatch(DispatchGroup group, bool enteredGate, CancellationToken connectionToken)
+        {
+            lock (dispatchLock)
+            {
+                if (enteredGate)
+                {
+                    dispatchGate.Release();
+                }
+
+                group.Count--;
+                pendingDispatches--;
+                if (group.Count == 0)
+                {
+                    dispatchGroups.Remove(connectionToken);
+                    group.Drained.TrySetResult();
+                }
+
+                if (pendingDispatches == 0)
+                {
+                    dispatchesDrained.TrySetResult();
+                }
+            }
         }
 
         private async Task DispatchMessageAsync(IServiceProvider svcProvider,
             MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes,
             IRouteInvocationInterceptor? interceptor, bool acknowledge,
+            MqttDispatchLifetime? lifetime, DispatchGroup group,
             Task? previousAcknowledgement = null, TaskCompletionSource? completion = null)
         {
+            var connectionToken = lifetime?.ConnectionToken ?? CancellationToken.None;
+            using var clientCallback = lifetime?.EnterCallbackScope.Invoke();
             try
             {
                 object? correlationObject = null;
@@ -97,7 +205,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                         correlationObject = await interceptor.RouteExecuting(context).ConfigureAwait(false);
                     }
 
-                    failure = await RouteMessageAsync(svcProvider, context, allowUnmatchedRoutes).ConfigureAwait(false);
+                    failure = await RouteMessageAsync(svcProvider, context, allowUnmatchedRoutes, connectionToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -126,9 +234,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                     await previousAcknowledgement.ConfigureAwait(false);
                 }
 
-                if (acknowledge && !context.ProcessingFailed)
+                if (acknowledge && !context.ProcessingFailed && !connectionToken.IsCancellationRequested && !shutdown.IsCancellationRequested)
                 {
-                    await context.AcknowledgeAsync(CancellationToken.None).ConfigureAwait(false);
+                    await context.AcknowledgeAsync(connectionToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -139,20 +247,12 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
             finally
             {
                 completion?.TrySetResult();
-                lock (dispatchLock)
-                {
-                    dispatchGate.Release();
-                    pendingDispatches--;
-                    if (disposed && pendingDispatches == 0)
-                    {
-                        dispatchGate.Dispose();
-                    }
-                }
+                ReleaseDispatch(group, true, connectionToken);
             }
         }
 
         private async Task<Exception?> RouteMessageAsync(IServiceProvider svcProvider,
-            MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes)
+            MqttApplicationMessageReceivedEventArgs context, bool allowUnmatchedRoutes, CancellationToken connectionToken)
         {
             var topic = context.ApplicationMessage?.Topic;
             if (string.IsNullOrEmpty(topic))
@@ -180,24 +280,27 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
             logger.LogDebug("Route matched for topic '{Topic}'", topic);
 
-            return await DispatchCoreAsync(svcProvider, context, routeContext).ConfigureAwait(false);
+            return await DispatchCoreAsync(svcProvider, context, routeContext, connectionToken).ConfigureAwait(false);
         }
 
         private async Task<Exception?> DispatchCoreAsync(IServiceProvider svcProvider,
-            MqttApplicationMessageReceivedEventArgs context, MqttRouteContext routeContext)
+            MqttApplicationMessageReceivedEventArgs context, MqttRouteContext routeContext, CancellationToken connectionToken)
         {
             // Ensure message is marked as accepted when the route is
             // processed successfully.
             context.ProcessingFailed = false;
 
-            using var timeoutCts = options?.MaxActionExecutionTime is { } maxExecutionTime
-                ? new CancellationTokenSource(maxExecutionTime)
-                : null;
-            var actionToken = timeoutCts?.Token ?? CancellationToken.None;
+            using var actionCts = CancellationTokenSource.CreateLinkedTokenSource(connectionToken, shutdown.Token);
+            if (options?.MaxActionExecutionTime is { } maxExecutionTime)
+            {
+                actionCts.CancelAfter(maxExecutionTime);
+            }
+
+            var actionToken = actionCts.Token;
 
             try
             {
-                using (var scope = svcProvider.CreateScope())
+                await using (var scope = svcProvider.CreateAsyncScope())
                 {
                     var declaringType = routeContext.Handler!.DeclaringType;
 
@@ -208,62 +311,82 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
 
                     var classInstance = typeActivator.CreateInstance<object>(scope.ServiceProvider, declaringType);
 
-                    // Potential perf improvement is to cache this reflection work in the future.
-                    var activateProperties = declaringType.GetRuntimeProperties()
-                        .Where((property) => property.IsDefined(typeof(MqttControllerContextAttribute)) &&
-                                             property.GetIndexParameters().Length == 0 &&
-                                             property.SetMethod != null &&
-                                             !property.SetMethod.IsStatic)
-                        .ToArray();
-
-                    if (activateProperties.Length == 0)
+                    try
                     {
-                        logger.LogDebug(
-                            "MqttController '{Controller}' does not have a property that can accept a controller context. You may want to add a [{ContextAttribute}] to a public property.",
-                            declaringType.FullName, nameof(MqttControllerContextAttribute));
-                    }
-
-                    var controllerContext = new MqttControllerContext()
-                    {
-                        MqttContext = context
-                    };
-
-                    for (int i = 0; i < activateProperties.Length; i++)
-                    {
-                        PropertyInfo property = activateProperties[i];
-                        property.SetValue(classInstance, controllerContext);
-                    }
-
-                    if (routeContext.HaveControllerParameter && routeContext.ControllerTemplate != null)
-                    {
-                        var tmpx = routeContext.ControllerTemplate;
-                        tmpx.Segments.Where(p => p.IsParameter).ToList().ForEach(ts =>
-                        {
-                            var pro = declaringType.GetRuntimeProperty(ts.Value);
-                            if (pro == null) return;
-                            if (routeContext.Parameters?.TryGetValue(ts.Value, out object? pvalue) == true)
-                            {
-                                pro.SetValue(classInstance, pvalue);
-                            }
-                        });
-                    }
-
-                    ParameterInfo[] parameters = routeContext.Handler.GetParameters();
-
-                    if (parameters.Length == 0)
-                    {
-                        await InvokeActionAsync(routeContext.Handler, classInstance, null, context, actionToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        var paramArray = parameters.Select(p =>
-                                MatchParameterOrThrow(p, routeContext.Parameters, controllerContext, svcProvider, actionToken)
-                            )
+                        // Potential perf improvement is to cache this reflection work in the future.
+                        var activateProperties = declaringType.GetRuntimeProperties()
+                            .Where((property) => property.IsDefined(typeof(MqttControllerContextAttribute)) &&
+                                                 property.GetIndexParameters().Length == 0 &&
+                                                 property.SetMethod != null &&
+                                                 !property.SetMethod.IsStatic)
                             .ToArray();
 
-                        await InvokeActionAsync(routeContext.Handler, classInstance, paramArray, context, actionToken).ConfigureAwait(false);
+                        if (activateProperties.Length == 0)
+                        {
+                            logger.LogDebug(
+                                "MqttController '{Controller}' does not have a property that can accept a controller context. You may want to add a [{ContextAttribute}] to a public property.",
+                                declaringType.FullName, nameof(MqttControllerContextAttribute));
+                        }
+
+                        var controllerContext = new MqttControllerContext()
+                        {
+                            MqttContext = context
+                        };
+
+                        for (int i = 0; i < activateProperties.Length; i++)
+                        {
+                            PropertyInfo property = activateProperties[i];
+                            property.SetValue(classInstance, controllerContext);
+                        }
+
+                        if (routeContext.HaveControllerParameter && routeContext.ControllerTemplate != null)
+                        {
+                            var tmpx = routeContext.ControllerTemplate;
+                            tmpx.Segments.Where(p => p.IsParameter).ToList().ForEach(ts =>
+                            {
+                                var pro = declaringType.GetRuntimeProperty(ts.Value);
+                                if (pro == null) return;
+                                if (routeContext.Parameters?.TryGetValue(ts.Value, out object? pvalue) == true)
+                                {
+                                    pro.SetValue(classInstance, pvalue);
+                                }
+                            });
+                        }
+
+                        ParameterInfo[] parameters = routeContext.Handler.GetParameters();
+
+                        if (parameters.Length == 0)
+                        {
+                            await InvokeActionAsync(routeContext.Handler, classInstance, null, context, actionToken, connectionToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            var paramArray = parameters.Select(p =>
+                                    MatchParameterOrThrow(p, routeContext.Parameters, controllerContext, svcProvider, actionToken)
+                                )
+                                .ToArray();
+
+                            await InvokeActionAsync(routeContext.Handler, classInstance, paramArray, context, actionToken, connectionToken).ConfigureAwait(false);
+                        }
+                    }
+                    finally
+                    {
+                        if (classInstance is IAsyncDisposable asyncDisposable)
+                        {
+                            await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+                        }
+                        else if (classInstance is IDisposable disposable)
+                        {
+                            disposable.Dispose();
+                        }
                     }
                 }
+            }
+            catch (OperationCanceledException ex) when (connectionToken.IsCancellationRequested || shutdown.IsCancellationRequested)
+            {
+                context.ProcessingFailed = true;
+                logger.LogDebug(ex, "MQTT action canceled during connection or router shutdown.");
+                return ex;
             }
             catch (TimeoutException ex)
             {
@@ -305,14 +428,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
         }
 
         private async Task InvokeActionAsync(MethodInfo method, object instance, object?[]? parameters,
-            MqttApplicationMessageReceivedEventArgs context, CancellationToken actionToken)
+            MqttApplicationMessageReceivedEventArgs context, CancellationToken actionToken, CancellationToken connectionToken)
         {
-            if (!actionToken.CanBeCanceled)
-            {
-                await HandlerInvoker(method, instance, parameters).ConfigureAwait(false);
-                return;
-            }
-
             // Include synchronous invocation and the synchronous prefix of async
             // methods in the deadline, without blocking the receive callback.
             var invocation = Task.Run(() => HandlerInvoker(method, instance, parameters));
@@ -333,6 +450,11 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Routing
                 catch (Exception ex)
                 {
                     logger.LogDebug(ex, "MQTT action terminated after its execution deadline.");
+                }
+
+                if (connectionToken.IsCancellationRequested || shutdown.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException("MQTT action canceled during shutdown.", actionToken);
                 }
 
                 throw new TimeoutException("MQTT action exceeded the configured execution time.");

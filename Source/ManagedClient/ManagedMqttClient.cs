@@ -22,6 +22,54 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
     public sealed class ManagedMqttClient : Disposable, IManagedMqttClient
     {
         readonly MqttNetSourceLogger _logger;
+        readonly AsyncEvent<MqttApplicationMessageReceivedEventArgs> _applicationMessageReceivedEvent = new();
+        readonly AsyncEvent<MqttClientConnectedEventArgs> _connectedEvent = new();
+        readonly AsyncEvent<MqttClientDisconnectedEventArgs> _disconnectedEvent = new();
+        readonly AsyncEvent<EventArgs> _stoppingEvent = new();
+        readonly object _connectionLifetimeLock = new();
+        readonly object _stopLock = new();
+        readonly AsyncLocal<ClientCallbackScope> _callbackScope = new();
+        CancellationTokenSource _incomingConnectionLifetime;
+        Task _stopTask = Task.CompletedTask;
+
+        sealed class ClientCallbackScope : IDisposable
+        {
+            readonly ManagedMqttClient _owner;
+            readonly ClientCallbackScope _previous;
+            public bool Active { get; private set; } = true;
+
+            public ClientCallbackScope(ManagedMqttClient owner)
+            {
+                _owner = owner;
+                _previous = owner._callbackScope.Value;
+                owner._callbackScope.Value = this;
+            }
+
+            public void Dispose()
+            {
+                Active = false;
+                _owner._callbackScope.Value = _previous;
+            }
+        }
+
+        internal IDisposable EnterCallbackScope() => new ClientCallbackScope(this);
+
+        internal CancellationToken IncomingConnectionToken
+        {
+            get
+            {
+                lock (_connectionLifetimeLock)
+                {
+                    return _incomingConnectionLifetime?.Token ?? new CancellationToken(true);
+                }
+            }
+        }
+
+        internal event Func<EventArgs, Task> StoppingAsync
+        {
+            add => _stoppingEvent.AddHandler(value);
+            remove => _stoppingEvent.RemoveHandler(value);
+        }
 
         readonly AsyncEvent<InterceptingPublishMessageEventArgs> _interceptingPublishMessageEvent = new();
         readonly AsyncEvent<ApplicationMessageProcessedEventArgs> _applicationMessageProcessedEvent = new();
@@ -78,6 +126,56 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
             ArgumentNullException.ThrowIfNull(logger);
 
             _logger = logger.WithSource(nameof(ManagedMqttClient));
+            InternalClient.ConnectingAsync += OnConnectingAsync;
+            InternalClient.ConnectedAsync += OnConnectedAsync;
+            InternalClient.DisconnectedAsync += OnDisconnectedAsync;
+            InternalClient.ApplicationMessageReceivedAsync += OnApplicationMessageReceivedAsync;
+        }
+
+        Task OnConnectingAsync(MqttClientConnectingEventArgs args)
+        {
+            lock (_connectionLifetimeLock)
+            {
+                CancelIncomingConnection();
+                _incomingConnectionLifetime?.Dispose();
+                _incomingConnectionLifetime = new CancellationTokenSource();
+            }
+
+            return Task.CompletedTask;
+        }
+
+        Task OnConnectedAsync(MqttClientConnectedEventArgs args) => InvokeClientCallbackAsync(_connectedEvent, args);
+
+        Task OnDisconnectedAsync(MqttClientDisconnectedEventArgs args)
+        {
+            CancelIncomingConnection();
+            return InvokeClientCallbackAsync(_disconnectedEvent, args);
+        }
+
+        Task OnApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args) =>
+            InvokeClientCallbackAsync(_applicationMessageReceivedEvent, args);
+
+        async Task InvokeClientCallbackAsync<T>(AsyncEvent<T> clientEvent, T args) where T : EventArgs
+        {
+            using (EnterCallbackScope())
+            {
+                await clientEvent.InvokeAsync(args).ConfigureAwait(false);
+            }
+        }
+
+        void CancelIncomingConnection()
+        {
+            lock (_connectionLifetimeLock)
+            {
+                try
+                {
+                    _incomingConnectionLifetime?.Cancel();
+                }
+                catch (AggregateException ex)
+                {
+                    _logger.Error(ex, "MQTT action cancellation callback failed.");
+                }
+            }
         }
 
         public event Func<ApplicationMessageSkippedEventArgs, Task> ApplicationMessageSkippedAsync
@@ -100,14 +198,14 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 
         public event Func<MqttApplicationMessageReceivedEventArgs, Task> ApplicationMessageReceivedAsync
         {
-            add => InternalClient.ApplicationMessageReceivedAsync += value;
-            remove => InternalClient.ApplicationMessageReceivedAsync -= value;
+            add => _applicationMessageReceivedEvent.AddHandler(value);
+            remove => _applicationMessageReceivedEvent.RemoveHandler(value);
         }
 
         public event Func<MqttClientConnectedEventArgs, Task> ConnectedAsync
         {
-            add => InternalClient.ConnectedAsync += value;
-            remove => InternalClient.ConnectedAsync -= value;
+            add => _connectedEvent.AddHandler(value);
+            remove => _connectedEvent.RemoveHandler(value);
         }
 
         public event Func<ConnectingFailedEventArgs, Task> ConnectingFailedAsync
@@ -124,8 +222,8 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 
         public event Func<MqttClientDisconnectedEventArgs, Task> DisconnectedAsync
         {
-            add => InternalClient.DisconnectedAsync += value;
-            remove => InternalClient.DisconnectedAsync -= value;
+            add => _disconnectedEvent.AddHandler(value);
+            remove => _disconnectedEvent.RemoveHandler(value);
         }
 
         public event Func<ManagedProcessFailedEventArgs, Task> SynchronizingSubscriptionsFailedAsync
@@ -235,9 +333,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 throw new ArgumentException("The client options are not set.", nameof(options));
             }
 
-            if (!_maintainConnectionTask?.IsCompleted ?? false)
+            if (!_stopTask.IsCompleted || (!_maintainConnectionTask?.IsCompleted ?? false))
             {
-                throw new InvalidOperationException("The managed client is already started.");
+                throw new InvalidOperationException("The managed client is already started or is still stopping.");
             }
 
             if (options.MaxReconnectDelay < TimeSpan.FromSeconds(1) ||
@@ -271,27 +369,62 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
         }
 
         /// <inheritdoc />
-        public async Task StopAsync(bool cleanDisconnect = true)
+        public Task StopAsync(bool cleanDisconnect = true)
         {
             ThrowIfDisposed();
+            var stopped = RequestStop(cleanDisconnect);
+            // A callback cannot join the worker which is awaiting that callback.
+            // Signal shutdown now; external callers still await full completion.
+            return _callbackScope.Value?.Active == true ? Task.CompletedTask : stopped;
+        }
 
-            _isCleanDisconnect = cleanDisconnect;
+        Task RequestStop(bool cleanDisconnect)
+        {
+            TaskCompletionSource completion;
+            lock (_stopLock)
+            {
+                if (!_stopTask.IsCompleted)
+                {
+                    return _stopTask;
+                }
+
+                completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                _stopTask = completion.Task;
+                _stopTask.RunInBackground(_logger);
+                _isCleanDisconnect = cleanDisconnect;
+            }
 
             CancelPublishing();
             StopMaintainingConnection();
+            CancelIncomingConnection();
+            _ = Task.Run(() => CompleteStopAsync(completion));
+            return completion.Task;
+        }
 
-            if (_maintainConnectionTask != null)
+        async Task CompleteStopAsync(TaskCompletionSource completion)
+        {
+            try
             {
-                await Task.WhenAny(_maintainConnectionTask);
-                _maintainConnectionTask = null;
+                if (_maintainConnectionTask != null)
+                {
+                    await Task.WhenAny(_maintainConnectionTask).ConfigureAwait(false);
+                    _maintainConnectionTask = null;
+                }
+
+                await StopPublishingAsync().ConfigureAwait(false);
+                await _stoppingEvent.InvokeAsync(EventArgs.Empty).ConfigureAwait(false);
+                using (await _messageQueueLock.EnterAsync().ConfigureAwait(false))
+                {
+                    _messageQueue.Clear();
+                    _storageManager?.Dispose();
+                    _storageManager = null;
+                }
+
+                completion.TrySetResult();
             }
-
-            await StopPublishingAsync().ConfigureAwait(false);
-            using (await _messageQueueLock.EnterAsync().ConfigureAwait(false))
+            catch (Exception ex)
             {
-                _messageQueue.Clear();
-                _storageManager?.Dispose();
-                _storageManager = null;
+                completion.TrySetException(ex);
             }
         }
 
@@ -344,16 +477,12 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
         {
             if (disposing)
             {
-                CancelPublishing();
-                StopMaintainingConnection();
-
-                if (_maintainConnectionTask != null)
+                RequestStop(cleanDisconnect: false).GetAwaiter().GetResult();
+                lock (_connectionLifetimeLock)
                 {
-                    _maintainConnectionTask.GetAwaiter().GetResult();
-                    _maintainConnectionTask = null;
+                    _incomingConnectionLifetime?.Dispose();
+                    _incomingConnectionLifetime = null;
                 }
-
-                StopPublishingAsync().GetAwaiter().GetResult();
 
                 _messageQueue.Dispose();
                 _messageQueueLock.Dispose();
@@ -399,7 +528,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 
             if (_synchronizingSubscriptionsFailedEvent.HasHandlers)
             {
-                await _synchronizingSubscriptionsFailedEvent.InvokeAsync(new ManagedProcessFailedEventArgs(exception, addedSubscriptions, removedSubscriptions)).ConfigureAwait(false);
+                await InvokeClientCallbackAsync(_synchronizingSubscriptionsFailedEvent, new ManagedProcessFailedEventArgs(exception, addedSubscriptions, removedSubscriptions)).ConfigureAwait(false);
             }
         }
 
@@ -407,7 +536,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
         {
             if (_subscriptionsChangedEvent.HasHandlers)
             {
-                await _subscriptionsChangedEvent.InvokeAsync(new SubscriptionsChangedEventArgs(subscribeUnsubscribeResult.SubscribeResults, subscribeUnsubscribeResult.UnsubscribeResults)).ConfigureAwait(false);
+                await InvokeClientCallbackAsync(_subscriptionsChangedEvent, new SubscriptionsChangedEventArgs(subscribeUnsubscribeResult.SubscribeResults, subscribeUnsubscribeResult.UnsubscribeResults)).ConfigureAwait(false);
             }
         }
 
@@ -628,7 +757,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
             }
             catch (Exception exception)
             {
-                await _connectingFailedEvent.InvokeAsync(new ConnectingFailedEventArgs(connectResult, exception));
+                await InvokeClientCallbackAsync(_connectingFailedEvent, new ConnectingFailedEventArgs(connectResult, exception)).ConfigureAwait(false);
                 return ReconnectionResult.NotConnected;
             }
         }
@@ -770,7 +899,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 
                 if (oldConnectionState != InternalClient.IsConnected)
                 {
-                    await _connectionStateChangedEvent.InvokeAsync(EventArgs.Empty).ConfigureAwait(false);
+                    await InvokeClientCallbackAsync(_connectionStateChangedEvent, EventArgs.Empty).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -795,7 +924,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 if (_interceptingPublishMessageEvent.HasHandlers)
                 {
                     var interceptEventArgs = new InterceptingPublishMessageEventArgs(message);
-                    await _interceptingPublishMessageEvent.InvokeAsync(interceptEventArgs).ConfigureAwait(false);
+                    await InvokeClientCallbackAsync(_interceptingPublishMessageEvent, interceptEventArgs).ConfigureAwait(false);
                     acceptPublish = interceptEventArgs.AcceptPublish;
                 }
 
@@ -857,7 +986,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
                 if (_applicationMessageProcessedEvent.HasHandlers)
                 {
                     var eventArgs = new ApplicationMessageProcessedEventArgs(message, transmitException);
-                    await _applicationMessageProcessedEvent.InvokeAsync(eventArgs).ConfigureAwait(false);
+                    await InvokeClientCallbackAsync(_applicationMessageProcessedEvent, eventArgs).ConfigureAwait(false);
                 }
             }
         }

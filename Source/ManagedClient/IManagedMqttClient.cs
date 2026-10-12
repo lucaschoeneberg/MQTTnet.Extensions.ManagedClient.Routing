@@ -48,12 +48,18 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
         /// <summary>Starts a new managed session and resets its reconnect backoff.</summary>
         /// <param name="options">Client options with MaxReconnectDelay between one second and the supported timer maximum (4,294,967,294 milliseconds).</param>
         /// <exception cref="ArgumentException">Client options are missing or MaxReconnectDelay is outside its supported range.</exception>
-        /// <exception cref="InvalidOperationException">The client is already started.</exception>
+        /// <exception cref="InvalidOperationException">The client is already started or its previous shutdown has not completed.</exception>
         Task StartAsync(ManagedMqttClientOptions options);
 
-        /// <summary>Stops the session and drains the publishing worker before releasing its storage.</summary>
+        /// <summary>Stops the session and drains publishing and registered routing before releasing storage.</summary>
         /// <param name="cleanDisconnect">Whether to send a clean disconnect to the broker.</param>
-        /// <remarks>Completion waits for in-flight publishing interceptors and storage writes. These must eventually complete.</remarks>
+        /// <remarks>
+        /// External callers await in-flight callbacks, routed actions, and storage writes.
+        /// Actions receive connection cancellation, but shutdown still waits for them to terminate.
+        /// Inside a managed-client callback or routed action, this method requests shutdown and
+        /// returns without joining its own processing task. A subsequent call outside the callback
+        /// awaits full completion. StartAsync is rejected while shutdown is in progress.
+        /// </remarks>
         Task StopAsync(bool cleanDisconnect = true);
 
         Task SubscribeAsync(IEnumerable<MqttTopicFilter> topicFilters);

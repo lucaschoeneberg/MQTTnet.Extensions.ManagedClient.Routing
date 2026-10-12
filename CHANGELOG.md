@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-12
+
 ### Added
 
+- Runnable end-to-end sample with an in-process MQTT broker, controller,
+  interceptor and graceful shutdown; expanded routing and configuration docs.
 - Public API tracking (`Source/PublicAPI.Shipped.txt`): new APIs must go
   to `PublicAPI.Unshipped.txt` first; CI fails otherwise.
 - Symbol packages (`.snupkg`) are built and published alongside the NuGet
@@ -33,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unbounded, bounding offline memory usage.
 - Handler, binding and interceptor failures no longer propagate into the
   MQTT dispatch loop; messages are marked failed and logged instead.
+- Action cancellation tokens now also track connection closure and routing
+  shutdown, even when no execution deadline is configured.
+- `StopAsync` inside a managed-client callback or routed action now requests
+  shutdown without joining its own task. External callers await complete
+  shutdown; restarting during shutdown is rejected.
 
 ### Fixed
 
@@ -44,6 +53,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   post-publish storage cleanup during shutdown.
 - Reconnect backoff grows to the configured maximum even for tiny base
   delays, and resets when starting a new managed session.
+- Deferred acknowledgements are bound to their original connection, preventing
+  old handlers from acknowledging replacement-session packets after reconnect.
+- Catch-all routes now validate their topic prefix and constraints before matching.
+- Hosted shutdown and standalone managed-client stop drain incoming dispatches
+  before container teardown; pending admission is canceled during shutdown.
+- Controller instances are explicitly disposed, and asynchronous controller
+  and scoped-service cleanup is awaited before releasing dispatch slots.
+
+### Upgrade notes
+
+- Review offline queue capacity: `MaxPendingMessages` now defaults to 1000;
+  configure it explicitly if your application requires a different bound.
+- Observe action cancellation tokens and pass them to asynchronous operations.
+  Deadlines and shutdown are cooperative: actions that ignore cancellation
+  retain their scope and dispatch slot until they actually terminate.
+- Await `StopAsync` outside callbacks before disposing a standalone service
+  provider; hosted applications use `Host.StopAsync`. A call inside a callback
+  or routed action requests shutdown, and a later external call awaits it.
+- Failed QoS 1/2 deliveries remain unacknowledged; broker redelivery depends
+  on the MQTT session. Applications provide their own retry or dead-letter
+  handling through the existing interceptor extension point.
 
 ## [1.2.0] - 2026-10-11
 
@@ -117,7 +147,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   MQTT topic routing with MVC-style controllers on top of MQTTnet's managed
   client.
 
-[Unreleased]: https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/lucaschoeneberg/MQTTnet.Extensions.ManagedClient.Routing/releases/tag/v1.0.0
