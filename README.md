@@ -107,6 +107,18 @@ builder.Services.AddMqttControllers(opt =>
 afterwards (with the correlation object and any exception). See the
 [architecture overview](docs/architecture.md#extension-points) for details.
 
+### Failure handling
+
+Each message is attempted once: handler, binding and interceptor failures
+mark the message as failed (`ProcessingFailed`) and are logged, but never
+fault the MQTT dispatch loop. There is no built-in retry or dead-letter
+queue — count failures in an `IRouteInvocationInterceptor` and forward
+poison messages to a dead-letter topic from there if needed.
+
+Bound the blast radius of slow actions with
+`opt.WithMaxActionExecutionTime(...)` and, for independent messages only,
+raise `opt.WithMaxConcurrentDispatches(...)` (default 1, ordered).
+
 ### Configuration
 
 `MqttRoutingOptions` (registered as singleton by `AddMqttControllers`):

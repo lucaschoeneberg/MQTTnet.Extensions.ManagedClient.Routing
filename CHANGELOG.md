@@ -15,11 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   package.
 - First-party line coverage gate (75%, vendored fork excluded) enforced in
   CI; release notes are now drafted automatically per merged PR.
+- `ManagedMqttClientOptions.MaxReconnectDelay`: reconnect delay now grows
+  exponentially with jitter (fleet-safe) instead of hammering at a fixed
+  interval.
+- `MqttRoutingOptions.MaxActionExecutionTime`: actions can be time-boxed;
+  overruns fail the message instead of stalling dispatch.
+- `MqttRoutingOptions.MaxConcurrentDispatches`: opt-in bounded parallel
+  dispatch for independent messages (default 1, ordered).
+- `ManagedMqttClientStorageManager` is now disposable.
 
 ### Changed
 
 - Package and assembly versions are now derived from `v*` git tags via
   MinVer instead of hardcoded csproj values.
+- `ManagedMqttClientOptions.MaxPendingMessages` defaults to 1000 instead of
+  unbounded, bounding offline memory usage.
+- Handler, binding and interceptor failures no longer propagate into the
+  MQTT dispatch loop; messages are marked failed and logged instead.
 
 ## [1.2.0] - 2026-10-11
 
