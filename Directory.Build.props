@@ -87,7 +87,7 @@
     <PackageReference Include="MinVer" PrivateAssets="All" />
   </ItemGroup>
 
-  <!-- Public API tracking for the packable library only (see Source/PublicApi.*.txt).
+  <!-- Public API tracking for the packable library only (see Source/PublicAPI.*.txt).
        Test projects do not ship an API surface. -->
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
