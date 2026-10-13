@@ -134,7 +134,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
         /// <param name="app">The application builder.</param>
         /// <param name="allowUnmatchedRoutes">Whether unmatched topics may be acknowledged successfully. Defaults to false.</param>
         /// <returns>The same application builder.</returns>
-        /// <remarks>ManagedMqttClient connections own acknowledgement ordering and cancellation. Host shutdown drains accepted dispatches.</remarks>
+        /// <remarks>ManagedMqttClient captures each delivery's connection before receive subscribers run; it owns acknowledgement ordering and cancellation. Host shutdown drains accepted dispatches.</remarks>
         public static IApplicationBuilder UseAttributeRouting(this IApplicationBuilder app,
             bool allowUnmatchedRoutes = false)
         {
@@ -151,7 +151,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
         /// <param name="client">The managed client.</param>
         /// <param name="svcProvider">The container owning routing and its controller dependencies.</param>
         /// <param name="allowUnmatchedRoutes">Whether unmatched topics may be acknowledged successfully. Defaults to false.</param>
-        /// <remarks>Await client.StopAsync outside a callback before disposing the container. Automatic acknowledgements never cross connection lifetimes.</remarks>
+        /// <remarks>Await client.StopAsync outside a callback before disposing the container. Each delivery retains the connection captured before receive subscribers run; automatic acknowledgements never cross connection lifetimes.</remarks>
         public static void WithAttributeRouting(this ManagedMqttClient client, IServiceProvider svcProvider,
             bool allowUnmatchedRoutes = false)
         {
@@ -168,7 +168,7 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.Extensions
             client.ApplicationMessageReceivedAsync += args =>
             {
                 MqttDispatchLifetime? lifetime = managedClient == null ? null : new MqttDispatchLifetime(
-                    managedClient, managedClient.EnterCallbackScope, managedClient.IncomingConnectionToken);
+                    managedClient, managedClient.EnterCallbackScope, managedClient.IncomingMessageConnectionToken);
                 return router.OnIncomingApplicationMessage(serviceProvider, args, allowUnmatchedRoutes,
                     interceptor, dispatchInBackground: true, lifetime);
             };

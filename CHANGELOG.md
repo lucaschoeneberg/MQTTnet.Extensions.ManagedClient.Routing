@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Capture each incoming delivery's connection lifetime before invoking receive
+  subscribers. A subscriber holding a delivery across reconnect can no longer
+  associate it with the replacement connection or acknowledge a reused packet ID.
+
 ## [1.3.0] - 2026-10-12
 
 ### Added

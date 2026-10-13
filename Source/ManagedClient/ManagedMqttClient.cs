@@ -37,11 +37,13 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
             readonly ManagedMqttClient _owner;
             readonly ClientCallbackScope _previous;
             public bool Active { get; private set; } = true;
+            public CancellationToken? ReceiveConnectionToken { get; }
 
-            public ClientCallbackScope(ManagedMqttClient owner)
+            public ClientCallbackScope(ManagedMqttClient owner, CancellationToken? receiveConnectionToken = null)
             {
                 _owner = owner;
                 _previous = owner._callbackScope.Value;
+                ReceiveConnectionToken = receiveConnectionToken ?? _previous?.ReceiveConnectionToken;
                 owner._callbackScope.Value = this;
             }
 
@@ -54,16 +56,9 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
 
         internal IDisposable EnterCallbackScope() => new ClientCallbackScope(this);
 
-        internal CancellationToken IncomingConnectionToken
-        {
-            get
-            {
-                lock (_connectionLifetimeLock)
-                {
-                    return _incomingConnectionLifetime?.Token ?? new CancellationToken(true);
-                }
-            }
-        }
+        // Never substitute a later connection when routing resumes after another subscriber.
+        internal CancellationToken IncomingMessageConnectionToken =>
+            _callbackScope.Value?.ReceiveConnectionToken ?? new CancellationToken(true);
 
         internal event Func<EventArgs, Task> StoppingAsync
         {
@@ -152,8 +147,19 @@ namespace MQTTnet.Extensions.ManagedClient.Routing.ManagedClient
             return InvokeClientCallbackAsync(_disconnectedEvent, args);
         }
 
-        Task OnApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args) =>
-            InvokeClientCallbackAsync(_applicationMessageReceivedEvent, args);
+        async Task OnApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs args)
+        {
+            CancellationToken connectionToken;
+            lock (_connectionLifetimeLock)
+            {
+                connectionToken = _incomingConnectionLifetime?.Token ?? new CancellationToken(true);
+            }
+
+            using (new ClientCallbackScope(this, connectionToken))
+            {
+                await _applicationMessageReceivedEvent.InvokeAsync(args).ConfigureAwait(false);
+            }
+        }
 
         async Task InvokeClientCallbackAsync<T>(AsyncEvent<T> clientEvent, T args) where T : EventArgs
         {
