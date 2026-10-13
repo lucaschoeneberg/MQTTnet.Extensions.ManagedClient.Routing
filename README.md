@@ -79,7 +79,7 @@ processing as failed. Parameters are bound from route values, from the JSON
 payload via `[FromPayload]`, or from DI context:
 
 - `CancellationToken` tracks routing shutdown and, for `ManagedMqttClient`,
-  the current connection. `MaxActionExecutionTime` adds an execution deadline.
+  the connection that delivered the message. `MaxActionExecutionTime` adds an execution deadline.
   This token is cancellable even without an action deadline.
 - The current message is available via `MqttBaseController.Message` /
   `MqttContext`, or a `[MqttControllerContext]` property on custom
@@ -130,6 +130,8 @@ In parallel mode routing disables MQTTnet's automatic acknowledgement and
 acknowledges successful messages after the action and `RouteExecuted` finish,
 in receive order within the original connection. Old deliveries cannot
 acknowledge packets on a replacement connection after reconnect.
+The connection lifetime is captured before any managed receive subscriber runs;
+a delivery held by an earlier subscriber across reconnect is rejected by routing.
 Failed QoS 1/2 deliveries remain unacknowledged; broker redelivery depends on
 the MQTT session. If automatic acknowledgement was already disabled before
 routing, the caller retains responsibility for acknowledging the message.
